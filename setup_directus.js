@@ -443,6 +443,11 @@ async function setupRolesAndPermissions() {
       action: 'update',
       permissions: { user_id: { _eq: "$CURRENT_USER" } }
     },
+    {
+      target: 'student',
+      collection: 'directus_files',
+      action: 'read'
+    },
 
     // === PUBLIC PERMISSIONS ===
     {
@@ -462,6 +467,11 @@ async function setupRolesAndPermissions() {
       collection: 'directus_users',
       action: 'create',
       fields: ['email', 'password', 'first_name', 'last_name', 'legal_name', 'tea_id']
+    },
+    {
+      target: 'public',
+      collection: 'directus_files',
+      action: 'read'
     }
   ];
 
