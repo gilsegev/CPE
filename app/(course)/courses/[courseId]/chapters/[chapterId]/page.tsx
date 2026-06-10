@@ -1,4 +1,4 @@
-import { auth } from "@clerk/nextjs";
+import { getCurrentUser } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { File } from "lucide-react";
 
@@ -16,10 +16,11 @@ const ChapterIdPage = async ({
 }: {
   params: { courseId: string; chapterId: string }
 }) => {
-  const { userId } = auth();
+  const user = await getCurrentUser();
+  const userId = user?.id;
   
   if (!userId) {
-    return redirect("/");
+    return redirect("/sign-in");
   } 
 
   const {
@@ -85,7 +86,7 @@ const ChapterIdPage = async ({
             ) : (
               <CourseEnrollButton
                 courseId={params.courseId}
-                price={course.price!}
+                price={(course as any).price}
               />
             )}
           </div>

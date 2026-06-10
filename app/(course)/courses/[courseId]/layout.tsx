@@ -65,7 +65,7 @@ const CourseLayout = async ({
     description: courseRaw.description,
     price: Number(courseRaw.price) || 0,
     isPublished: courseRaw.is_published,
-    thumbnailUrl: courseRaw.thumbnail_url || null,
+    imageUrl: courseRaw.thumbnail_url || null,
     chapters: modules.map((m) => {
       const prog = progressMap.get(m.id);
       return {

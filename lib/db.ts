@@ -66,6 +66,13 @@ export interface DirectusUser {
   tea_id?: string;
 }
 
+export interface UserProgress {
+  id: string;
+  is_completed: boolean;
+  user_id: string;
+  module_id: string;
+}
+
 export type CPESchema = {
   Courses: Course[];
   Modules: Module[];
@@ -74,6 +81,7 @@ export type CPESchema = {
   Questions: Question[];
   Submissions: Submission[];
   Certificates: Certificate[];
+  UserProgress: UserProgress[];
 };
 
 // Initialize server-side admin client

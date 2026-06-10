@@ -66,7 +66,7 @@ export const getCourses = async ({
           description: course.description || "",
           price: Number(course.price) || 0,
           isPublished: course.is_published,
-          thumbnailUrl: course.thumbnail_url || null,
+          imageUrl: course.thumbnail_url || null,
           category: null, // No category system in current Phase 1 schema
           chapters: modules.map((m) => ({ id: m.id })), // Map to chapters for frontend routing
           progress,

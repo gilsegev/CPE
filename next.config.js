@@ -4,6 +4,9 @@ const nextConfig = {
     domains: [
       "utfs.io"
     ]
+  },
+  experimental: {
+    serverActions: true,
   }
 }
 

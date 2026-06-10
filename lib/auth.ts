@@ -1,6 +1,6 @@
 import { cookies } from "next/headers";
 import { createDirectus, rest, readMe, staticToken } from "@directus/sdk";
-import { CPESchema } from "./db";
+import { CPESchema, DirectusUser } from "./db";
 
 const directusUrl = process.env.NEXT_PUBLIC_DIRECTUS_URL || 'https://directus-production-69c0.up.railway.app';
 
@@ -135,17 +135,17 @@ export async function logout(): Promise<void> {
 }
 
 // Get currently logged-in user profile
-export async function getCurrentUser() {
+export async function getCurrentUser(): Promise<DirectusUser | null> {
   const client = await getSessionClient();
   if (!client) return null;
 
   try {
     const user = await client.request(
       readMe({
-        fields: ["id", "email", "first_name", "last_name", "legal_name", "tea_id"],
+        fields: ["id", "email", "first_name", "last_name", "legal_name", "tea_id"] as any,
       })
     );
-    return user;
+    return user as unknown as DirectusUser;
   } catch (error) {
     console.error("[AUTH_GET_USER_ERROR]", error);
     return null;

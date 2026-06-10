@@ -1,6 +1,7 @@
 import Stripe from "stripe";
 import { headers } from "next/headers";
 import { NextResponse } from "next/server";
+import { createItem } from "@directus/sdk";
 
 import { stripe } from "@/lib/stripe";
 import { db } from "@/lib/db";
@@ -30,12 +31,13 @@ export async function POST(req: Request) {
       return new NextResponse(`Webhook Error: Missing metadata`, { status: 400 });
     }
 
-    await db.purchase.create({
-      data: {
-        courseId: courseId,
-        userId: userId,
-      }
-    });
+    await db.request(
+      createItem("Purchases", {
+        user_id: userId,
+        course_id: courseId,
+        status: "active",
+      })
+    );
   } else {
     return new NextResponse(`Webhook Error: Unhandled event type ${event.type}`, { status: 200 })
   }

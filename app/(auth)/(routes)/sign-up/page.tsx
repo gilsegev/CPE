@@ -48,7 +48,7 @@ export default function SignUpPage({ searchParams }: SignUpPageProps) {
           role: studentRole.id,
           legal_name: legalName,
           tea_id: teaId || undefined,
-        })
+        } as any)
       );
 
       // 3. Log the user in automatically

@@ -53,7 +53,7 @@ export const getDashboardCourses = async (userId: string) => {
           description: course.description || "",
           price: Number(course.price) || 0,
           isPublished: course.is_published,
-          thumbnailUrl: course.thumbnail_url || null,
+          imageUrl: course.thumbnail_url || null,
           category: null,
           chapters: modules.map((m) => ({
             id: m.id,

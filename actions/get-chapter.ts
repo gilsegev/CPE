@@ -57,6 +57,7 @@ export const getChapter = async ({
       isPublished: true,
       isFree: moduleRaw.is_free_preview,
       videoUrl: null,
+      description: "",
     };
 
     let muxData = null;
