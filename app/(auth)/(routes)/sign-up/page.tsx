@@ -60,7 +60,22 @@ export default function SignUpPage({ searchParams }: SignUpPageProps) {
       }
     } catch (err: any) {
       console.error("[SIGNUP_ERROR]", err);
-      const msg = err.message || "An error occurred during sign up";
+      
+      let msg = "An error occurred during sign up. Please try again.";
+      const firstError = err.errors?.[0];
+      const errMsg = firstError?.message || err.message || "";
+      const errCode = firstError?.extensions?.code || "";
+      
+      if (errCode === "RECORD_NOT_UNIQUE" || errMsg.toLowerCase().includes("unique")) {
+        if (errMsg.toLowerCase().includes("email")) {
+          msg = "An account with this email address already exists. Please sign in or use a different email.";
+        } else {
+          msg = "This account information is already registered.";
+        }
+      } else if (errMsg) {
+        msg = errMsg;
+      }
+
       redirect(`/sign-up?error=${encodeURIComponent(msg)}`);
     }
   }
