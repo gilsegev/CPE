@@ -118,7 +118,7 @@ async function main() {
       schema: {},
       meta: { show_in_navigation: true, icon: 'school' },
       fields: [
-        { field: 'id', type: 'uuid', schema: { is_primary_key: true }, meta: { interface: 'input', readonly: true, hidden: true } },
+        { field: 'id', type: 'uuid', schema: { is_primary_key: true }, meta: { interface: 'input', readonly: true, hidden: true, special: ['uuid'] } },
         { field: 'status', type: 'string', schema: { default_value: 'draft' }, meta: { interface: 'select-dropdown', options: { choices: [{text: 'Published', value: 'published'}, {text: 'Draft', value: 'draft'}, {text: 'Archived', value: 'archived'}] } } },
         { field: 'title', type: 'string', meta: { interface: 'input', required: true } },
         { field: 'description', type: 'text', meta: { interface: 'input-rich-text-html' } },
@@ -132,7 +132,7 @@ async function main() {
       schema: {},
       meta: { show_in_navigation: true, icon: 'view_module' },
       fields: [
-        { field: 'id', type: 'uuid', schema: { is_primary_key: true }, meta: { interface: 'input', readonly: true, hidden: true } },
+        { field: 'id', type: 'uuid', schema: { is_primary_key: true }, meta: { interface: 'input', readonly: true, hidden: true, special: ['uuid'] } },
         { field: 'title', type: 'string', meta: { interface: 'input', required: true } },
         { field: 'order_index', type: 'integer', schema: { default_value: 0 }, meta: { interface: 'input' } },
         { field: 'mux_asset_id', type: 'string', meta: { interface: 'input' } },
@@ -145,7 +145,7 @@ async function main() {
       schema: {},
       meta: { show_in_navigation: true, icon: 'shopping_cart' },
       fields: [
-        { field: 'id', type: 'uuid', schema: { is_primary_key: true }, meta: { interface: 'input', readonly: true, hidden: true } },
+        { field: 'id', type: 'uuid', schema: { is_primary_key: true }, meta: { interface: 'input', readonly: true, hidden: true, special: ['uuid'] } },
         { field: 'stripe_payment_id', type: 'string', meta: { interface: 'input' } },
         { field: 'status', type: 'string', schema: { default_value: 'active' }, meta: { interface: 'select-dropdown', options: { choices: [{text: 'Active', value: 'active'}, {text: 'Refunded', value: 'refunded'}] } } },
         { field: 'user_id', type: 'uuid', meta: { interface: 'select-relational', hidden: true } },
@@ -157,7 +157,7 @@ async function main() {
       schema: {},
       meta: { show_in_navigation: true, icon: 'quiz' },
       fields: [
-        { field: 'id', type: 'uuid', schema: { is_primary_key: true }, meta: { interface: 'input', readonly: true, hidden: true } },
+        { field: 'id', type: 'uuid', schema: { is_primary_key: true }, meta: { interface: 'input', readonly: true, hidden: true, special: ['uuid'] } },
         { field: 'passing_score', type: 'integer', schema: { default_value: 80 }, meta: { interface: 'input' } },
         { field: 'module_id', type: 'uuid', meta: { interface: 'select-relational', hidden: true } }
       ]
@@ -167,7 +167,7 @@ async function main() {
       schema: {},
       meta: { show_in_navigation: true, icon: 'help_outline' },
       fields: [
-        { field: 'id', type: 'uuid', schema: { is_primary_key: true }, meta: { interface: 'input', readonly: true, hidden: true } },
+        { field: 'id', type: 'uuid', schema: { is_primary_key: true }, meta: { interface: 'input', readonly: true, hidden: true, special: ['uuid'] } },
         { field: 'question_text', type: 'text', meta: { interface: 'input', required: true } },
         { field: 'options', type: 'json', meta: { interface: 'tags' } }, // Simple tags interface to enter array of options
         { field: 'correct_answer_index', type: 'integer', meta: { interface: 'input', required: true } },
@@ -179,7 +179,7 @@ async function main() {
       schema: {},
       meta: { show_in_navigation: true, icon: 'assignment_turned_in' },
       fields: [
-        { field: 'id', type: 'uuid', schema: { is_primary_key: true }, meta: { interface: 'input', readonly: true, hidden: true } },
+        { field: 'id', type: 'uuid', schema: { is_primary_key: true }, meta: { interface: 'input', readonly: true, hidden: true, special: ['uuid'] } },
         { field: 'quiz_score', type: 'integer', meta: { interface: 'input' } },
         { field: 'essay_text', type: 'text', meta: { interface: 'textarea' } },
         { field: 'status', type: 'string', schema: { default_value: 'Pending' }, meta: { interface: 'select-dropdown', options: { choices: [{text: 'Pending', value: 'Pending'}, {text: 'Approved', value: 'Approved'}, {text: 'Rejected', value: 'Rejected'}] } } },
@@ -192,7 +192,7 @@ async function main() {
       schema: {},
       meta: { show_in_navigation: true, icon: 'workspace_premium' },
       fields: [
-        { field: 'id', type: 'uuid', schema: { is_primary_key: true }, meta: { interface: 'input', readonly: true, hidden: true } },
+        { field: 'id', type: 'uuid', schema: { is_primary_key: true }, meta: { interface: 'input', readonly: true, hidden: true, special: ['uuid'] } },
         { field: 'pdf_url', type: 'string', meta: { interface: 'input' } },
         { field: 'issued_date', type: 'timestamp', schema: { default_value: 'CURRENT_TIMESTAMP' }, meta: { interface: 'datetime' } },
         { field: 'user_id', type: 'uuid', meta: { interface: 'select-relational', hidden: true } },
@@ -204,7 +204,7 @@ async function main() {
       schema: {},
       meta: { show_in_navigation: true, icon: 'playlist_add_check' },
       fields: [
-        { field: 'id', type: 'uuid', schema: { is_primary_key: true }, meta: { interface: 'input', readonly: true, hidden: true } },
+        { field: 'id', type: 'uuid', schema: { is_primary_key: true }, meta: { interface: 'input', readonly: true, hidden: true, special: ['uuid'] } },
         { field: 'is_completed', type: 'boolean', schema: { default_value: false }, meta: { interface: 'boolean' } },
         { field: 'user_id', type: 'uuid', meta: { interface: 'select-relational', hidden: true } },
         { field: 'module_id', type: 'uuid', meta: { interface: 'select-relational', hidden: true } }
