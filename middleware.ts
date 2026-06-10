@@ -73,9 +73,19 @@ export async function middleware(request: NextRequest) {
           secure: process.env.NODE_ENV === "production",
           maxAge: 7 * 24 * 60 * 60,
         });
+      } else {
+        // Clear invalid cookies
+        response.cookies.delete("directus_access_token");
+        response.cookies.delete("directus_refresh_token");
+        accessToken = undefined;
+        refreshToken = undefined;
       }
     } catch (error) {
       console.error("[MIDDLEWARE_REFRESH_ERROR]", error);
+      response.cookies.delete("directus_access_token");
+      response.cookies.delete("directus_refresh_token");
+      accessToken = undefined;
+      refreshToken = undefined;
     }
   }
 
@@ -90,7 +100,13 @@ export async function middleware(request: NextRequest) {
   if (!isPublicRoute && !hasToken) {
     const signInUrl = new URL("/sign-in", request.url);
     signInUrl.searchParams.set("redirectTo", pathname);
-    return NextResponse.redirect(signInUrl);
+    const redirectResponse = NextResponse.redirect(signInUrl);
+    
+    // Clear cookies on redirect so browser cleans them up
+    redirectResponse.cookies.delete("directus_access_token");
+    redirectResponse.cookies.delete("directus_refresh_token");
+    
+    return redirectResponse;
   }
 
   return response;
