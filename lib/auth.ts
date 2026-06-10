@@ -49,26 +49,34 @@ export async function getValidAccessToken(): Promise<string | null> {
     const { data } = await response.json();
 
     // Set the new access and refresh tokens in cookies
-    cookieStore.set("directus_access_token", data.access_token, {
-      path: "/",
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      maxAge: data.expires / 1000, // Directus returns expires in milliseconds
-    });
+    try {
+      cookieStore.set("directus_access_token", data.access_token, {
+        path: "/",
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        maxAge: data.expires / 1000, // Directus returns expires in milliseconds
+      });
 
-    cookieStore.set("directus_refresh_token", data.refresh_token, {
-      path: "/",
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      maxAge: 7 * 24 * 60 * 60, // Keep refresh token for 7 days
-    });
+      cookieStore.set("directus_refresh_token", data.refresh_token, {
+        path: "/",
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        maxAge: 7 * 24 * 60 * 60, // Keep refresh token for 7 days
+      });
+    } catch (cookieError) {
+      console.warn("[AUTH_COOKIE_SET_SKIPPED] Skip setting cookies during read-only render context.");
+    }
 
     return data.access_token;
   } catch (error) {
     console.error("[AUTH_REFRESH_ERROR]", error);
     // Clear cookies on failure
-    cookieStore.delete("directus_access_token");
-    cookieStore.delete("directus_refresh_token");
+    try {
+      cookieStore.delete("directus_access_token");
+      cookieStore.delete("directus_refresh_token");
+    } catch (cookieError) {
+      console.warn("[AUTH_COOKIE_DELETE_SKIPPED] Skip deleting cookies during read-only render context.");
+    }
     return null;
   }
 }

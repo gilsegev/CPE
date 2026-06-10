@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
-export function middleware(request: NextRequest) {
+export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   // Define public/unauthenticated paths
@@ -11,9 +11,75 @@ export function middleware(request: NextRequest) {
     pathname.startsWith("/api/webhook") ||
     pathname === "/"; // Home landing page is public
 
-  const hasToken =
-    request.cookies.has("directus_access_token") ||
-    request.cookies.has("directus_refresh_token");
+  let accessToken = request.cookies.get("directus_access_token")?.value;
+  let refreshToken = request.cookies.get("directus_refresh_token")?.value;
+
+  let response = NextResponse.next();
+
+  // If access token is missing but refresh token exists, refresh it in the middleware!
+  if (!accessToken && refreshToken) {
+    try {
+      const directusUrl = process.env.NEXT_PUBLIC_DIRECTUS_URL || 'https://directus-production-69c0.up.railway.app';
+      const refreshResponse = await fetch(`${directusUrl}/auth/refresh`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ refresh_token: refreshToken, mode: "json" }),
+      });
+
+      if (refreshResponse.ok) {
+        const { data } = await refreshResponse.json();
+        accessToken = data.access_token;
+        refreshToken = data.refresh_token;
+
+        // Set cookies on the response so they save in the browser
+        response.cookies.set("directus_access_token", data.access_token, {
+          path: "/",
+          httpOnly: true,
+          secure: process.env.NODE_ENV === "production",
+          maxAge: data.expires / 1000,
+        });
+
+        response.cookies.set("directus_refresh_token", data.refresh_token, {
+          path: "/",
+          httpOnly: true,
+          secure: process.env.NODE_ENV === "production",
+          maxAge: 7 * 24 * 60 * 60,
+        });
+
+        // Set the Cookie header on the request so Server Components see the refreshed tokens immediately
+        const requestHeaders = new Headers(request.headers);
+        requestHeaders.set(
+          "cookie",
+          `directus_access_token=${data.access_token}; directus_refresh_token=${data.refresh_token}`
+        );
+
+        response = NextResponse.next({
+          request: {
+            headers: requestHeaders,
+          },
+        });
+
+        // Copy the set-cookie headers back to the new response
+        response.cookies.set("directus_access_token", data.access_token, {
+          path: "/",
+          httpOnly: true,
+          secure: process.env.NODE_ENV === "production",
+          maxAge: data.expires / 1000,
+        });
+
+        response.cookies.set("directus_refresh_token", data.refresh_token, {
+          path: "/",
+          httpOnly: true,
+          secure: process.env.NODE_ENV === "production",
+          maxAge: 7 * 24 * 60 * 60,
+        });
+      }
+    } catch (error) {
+      console.error("[MIDDLEWARE_REFRESH_ERROR]", error);
+    }
+  }
+
+  const hasToken = !!accessToken || !!refreshToken;
 
   // Redirect authenticated users trying to access login/signup to search catalog
   if (hasToken && (pathname.startsWith("/sign-in") || pathname.startsWith("/sign-up"))) {
@@ -27,7 +93,7 @@ export function middleware(request: NextRequest) {
     return NextResponse.redirect(signInUrl);
   }
 
-  return NextResponse.next();
+  return response;
 }
 
 // Protect all paths except static assets, internal Next.js files, and API files
