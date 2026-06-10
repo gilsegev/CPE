@@ -124,7 +124,7 @@ async function main() {
         { field: 'description', type: 'text', meta: { interface: 'input-rich-text-html' } },
         { field: 'price', type: 'decimal', meta: { interface: 'input' } },
         { field: 'is_published', type: 'boolean', schema: { default_value: false }, meta: { interface: 'boolean' } },
-        { field: 'thumbnail_url', type: 'string', meta: { interface: 'input' } }
+        { field: 'thumbnail_url', type: 'uuid', meta: { interface: 'file', special: ['file'] } }
       ]
     },
     {
@@ -230,6 +230,8 @@ async function main() {
   // 3. Setup Relations (Many-to-One / One-to-One)
   console.log('\n3. Linking collections (establishing relationships)...');
   const relations = [
+    // Courses -> directus_files
+    { collection: 'Courses', field: 'thumbnail_url', related_collection: 'directus_files' },
     // Modules -> Courses
     { collection: 'Modules', field: 'course_id', related_collection: 'Courses' },
     // Purchases -> Users & Courses

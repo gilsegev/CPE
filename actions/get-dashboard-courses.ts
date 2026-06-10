@@ -47,13 +47,18 @@ export const getDashboardCourses = async (userId: string) => {
 
         const progress = await getProgress(userId, course.id);
 
+        const directusUrl = process.env.NEXT_PUBLIC_DIRECTUS_URL || 'https://directus-production-69c0.up.railway.app';
+        const imageUrl = course.thumbnail_url
+          ? `${directusUrl}/assets/${course.thumbnail_url}`
+          : null;
+
         return {
           id: course.id,
           title: course.title,
           description: course.description || "",
           price: Number(course.price) || 0,
           isPublished: course.is_published,
-          imageUrl: course.thumbnail_url || null,
+          imageUrl,
           category: null,
           chapters: modules.map((m) => ({
             id: m.id,

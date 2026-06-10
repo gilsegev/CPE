@@ -21,6 +21,8 @@ const CourseLayout = async ({
     return redirect("/sign-in");
   }
 
+  const directusUrl = process.env.NEXT_PUBLIC_DIRECTUS_URL || 'https://directus-production-69c0.up.railway.app';
+
   // 1. Fetch course details from Directus
   const courseRaw = await db.request(
     readItem("Courses", params.courseId, {
@@ -58,6 +60,10 @@ const CourseLayout = async ({
 
   const progressMap = new Map(progresses.map((p) => [p.module_id, p]));
 
+  const imageUrl = courseRaw.thumbnail_url
+    ? `${directusUrl}/assets/${courseRaw.thumbnail_url}`
+    : null;
+
   // 4. Map properties from Directus naming to frontend component expectations
   const course = {
     id: courseRaw.id,
@@ -65,7 +71,7 @@ const CourseLayout = async ({
     description: courseRaw.description,
     price: Number(courseRaw.price) || 0,
     isPublished: courseRaw.is_published,
-    imageUrl: courseRaw.thumbnail_url || null,
+    imageUrl,
     chapters: modules.map((m) => {
       const prog = progressMap.get(m.id);
       return {
