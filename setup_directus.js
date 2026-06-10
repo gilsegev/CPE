@@ -137,7 +137,7 @@ async function main() {
         { field: 'order_index', type: 'integer', schema: { default_value: 0 }, meta: { interface: 'input' } },
         { field: 'mux_asset_id', type: 'string', meta: { interface: 'input' } },
         { field: 'is_free_preview', type: 'boolean', schema: { default_value: false }, meta: { interface: 'boolean' } },
-        { field: 'course_id', type: 'uuid', meta: { interface: 'select-relational', hidden: true } }
+        { field: 'course_id', type: 'uuid', meta: { interface: 'select-dropdown-m2o', hidden: false } }
       ]
     },
     {
