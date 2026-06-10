@@ -84,4 +84,25 @@ This explicit schema replaces the default Prisma models from the clone, mapping 
 5. **Phase 5: Automation Pipeline**  
    * Deploy n8n.  
    * Design the Google Doc Certificate template.  
-   * Build the Webhook \-\> n8n \-\> Google Doc \-\> PDF \-\> Email flow.
+   * Build the Webhook \-> n8n \-> Google Doc \-> PDF \-> Email flow.
+
+## **6. Phase Verification & Exit Gates**
+
+### **Phase 2 Exit Gate: Frontend Surgery**
+* **Build Check:** Next.js application compiles cleanly using `npm run build` with zero TypeScript or webpack errors.
+* **Authentication:** Custom `/sign-in` and `/sign-up` forms successfully verify, create, and log in Directus users. Legal Name (required) and TEA ID (optional) are persisted.
+* **Session Management:** Secure HTTP-only cookies (`directus_access_token` and `directus_refresh_token`) protect all dynamic `/courses` layouts.
+* **Data Retrieval:** Action helpers successfully load dynamic course and chapter lists directly from the Directus REST API.
+
+### **Phase 3 Exit Gate: Video & Payments**
+* **Checkout Redirect:** Triggering checkout dynamically creates a Stripe session and redirects the user to the secure payment page.
+* **Webhook Provisioning:** Stripe's success callback fires to `/api/webhook`, which uses the Directus SDK to provision an active course purchase.
+* **Mux Video Playback:** Module video components retrieve and stream Mux playback IDs. Free previews play immediately; locked modules require active purchase validation.
+
+### **Phase 4 Exit Gate: Custom Assessment Engineering**
+* **Real-time Quiz Feedback:** Quiz component validates multiple-choice answers immediately on screen (correct/incorrect styling).
+* **Case Study Submission:** Observational essay submission triggers backend validation, saves score, and creates a `Pending` record in `Submissions`.
+
+### **Phase 5 Exit Gate: Automation Pipeline**
+* **Webhook Trigger:** Setting status to `Approved` in Directus fires a webhook to n8n.
+* **Doc Compilation:** n8n compiles PDF certificate, sends email, and writes PDF URL to Directus `Certificates`.
