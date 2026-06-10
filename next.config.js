@@ -2,7 +2,8 @@
 const nextConfig = {
   images: {
     domains: [
-      "utfs.io"
+      "utfs.io",
+      "directus-production-69c0.up.railway.app"
     ]
   },
   experimental: {
