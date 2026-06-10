@@ -198,6 +198,17 @@ async function main() {
         { field: 'user_id', type: 'uuid', meta: { interface: 'select-relational', hidden: true } },
         { field: 'course_id', type: 'uuid', meta: { interface: 'select-relational', hidden: true } }
       ]
+    },
+    {
+      collection: 'UserProgress',
+      schema: {},
+      meta: { show_in_navigation: true, icon: 'playlist_add_check' },
+      fields: [
+        { field: 'id', type: 'uuid', schema: { is_primary_key: true }, meta: { interface: 'input', readonly: true, hidden: true } },
+        { field: 'is_completed', type: 'boolean', schema: { default_value: false }, meta: { interface: 'boolean' } },
+        { field: 'user_id', type: 'uuid', meta: { interface: 'select-relational', hidden: true } },
+        { field: 'module_id', type: 'uuid', meta: { interface: 'select-relational', hidden: true } }
+      ]
     }
   ];
 
@@ -233,7 +244,10 @@ async function main() {
     { collection: 'Submissions', field: 'course_id', related_collection: 'Courses' },
     // Certificates -> Users & Courses
     { collection: 'Certificates', field: 'user_id', related_collection: 'directus_users' },
-    { collection: 'Certificates', field: 'course_id', related_collection: 'Courses' }
+    { collection: 'Certificates', field: 'course_id', related_collection: 'Courses' },
+    // UserProgress -> Users & Modules
+    { collection: 'UserProgress', field: 'user_id', related_collection: 'directus_users' },
+    { collection: 'UserProgress', field: 'module_id', related_collection: 'Modules' }
   ];
 
   for (const rel of relations) {
@@ -407,6 +421,25 @@ async function setupRolesAndPermissions() {
       collection: 'directus_users',
       action: 'update',
       permissions: { id: { _eq: "$CURRENT_USER" } }
+    },
+    {
+      target: 'student',
+      collection: 'UserProgress',
+      action: 'read',
+      permissions: { user_id: { _eq: "$CURRENT_USER" } }
+    },
+    {
+      target: 'student',
+      collection: 'UserProgress',
+      action: 'create',
+      validation: { user_id: { _eq: "$CURRENT_USER" } },
+      presets: { user_id: "$CURRENT_USER" }
+    },
+    {
+      target: 'student',
+      collection: 'UserProgress',
+      action: 'update',
+      permissions: { user_id: { _eq: "$CURRENT_USER" } }
     },
 
     // === PUBLIC PERMISSIONS ===
