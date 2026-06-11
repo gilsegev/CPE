@@ -159,7 +159,7 @@ async function main() {
       fields: [
         { field: 'id', type: 'uuid', schema: { is_primary_key: true }, meta: { interface: 'input', readonly: true, hidden: true, special: ['uuid'] } },
         { field: 'passing_score', type: 'integer', schema: { default_value: 80 }, meta: { interface: 'input' } },
-        { field: 'module_id', type: 'uuid', meta: { interface: 'select-relational', hidden: true } }
+        { field: 'module_id', type: 'uuid', meta: { interface: 'select-relational', hidden: false } }
       ]
     },
     {
@@ -171,7 +171,7 @@ async function main() {
         { field: 'question_text', type: 'text', meta: { interface: 'input', required: true } },
         { field: 'options', type: 'json', meta: { interface: 'tags' } }, // Simple tags interface to enter array of options
         { field: 'correct_answer_index', type: 'integer', meta: { interface: 'input', required: true } },
-        { field: 'quiz_id', type: 'uuid', meta: { interface: 'select-relational', hidden: true } }
+        { field: 'quiz_id', type: 'uuid', meta: { interface: 'select-relational', hidden: false } }
       ]
     },
     {
