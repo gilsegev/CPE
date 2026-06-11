@@ -16,6 +16,7 @@ export interface Module {
   order_index: number;
   mux_asset_id?: string;
   is_free_preview: boolean;
+  type?: 'video' | 'quiz' | 'essay';
 }
 
 export interface Purchase {
@@ -38,6 +39,7 @@ export interface Question {
   question_text: string;
   options: string[];
   correct_answer_index: number;
+  explanation?: string;
 }
 
 export interface Submission {
@@ -46,7 +48,7 @@ export interface Submission {
   course_id: string;
   quiz_score: number;
   essay_text: string;
-  status: 'Pending' | 'Approved' | 'Rejected';
+  status: 'Draft' | 'Pending' | 'Approved' | 'Rejected';
 }
 
 export interface Certificate {
@@ -73,6 +75,14 @@ export interface UserProgress {
   module_id: string;
 }
 
+export interface QuizProgress {
+  id: string;
+  answers: Record<string, number>;
+  is_completed: boolean;
+  user_id: string;
+  module_id: string;
+}
+
 export type CPESchema = {
   Courses: Course[];
   Modules: Module[];
@@ -82,6 +92,7 @@ export type CPESchema = {
   Submissions: Submission[];
   Certificates: Certificate[];
   UserProgress: UserProgress[];
+  QuizProgress: QuizProgress[];
 };
 
 // Initialize server-side admin client

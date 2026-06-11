@@ -38,7 +38,7 @@ const CourseLayout = async ({
         course_id: { _eq: params.courseId },
       },
       sort: ["order_index"],
-      fields: ["id", "title", "order_index", "mux_asset_id", "is_free_preview"],
+      fields: ["id", "title", "order_index", "mux_asset_id", "is_free_preview", "type"],
     })
   );
 
@@ -55,7 +55,20 @@ const CourseLayout = async ({
     })
   ) : [];
 
-  const progressMap = new Map(progresses.map((p) => [p.module_id, p]));
+  const progressMap = new Map(progresses.map((p) => [p.module_id, p.is_completed]));
+
+  // Fetch active purchase for the user
+  const purchases = userId ? await db.request(
+    readItems("Purchases", {
+      filter: {
+        user_id: { _eq: userId },
+        course_id: { _eq: params.courseId },
+        status: { _eq: "active" },
+      },
+      limit: 1,
+    })
+  ) : [];
+  const purchase = purchases[0] || null;
 
   const imageUrl = courseRaw.thumbnail_url
     ? `${directusUrl}/assets/${courseRaw.thumbnail_url}`
@@ -69,15 +82,36 @@ const CourseLayout = async ({
     price: Number(courseRaw.price) || 0,
     isPublished: courseRaw.is_published,
     imageUrl,
-    chapters: modules.map((m) => {
-      const prog = progressMap.get(m.id);
+    chapters: modules.map((m, index) => {
+      const isCompleted = !!progressMap.get(m.id);
+
+      // Compute locked state based on purchase and preceding completion rules
+      let isLocked = false;
+      if (!m.is_free_preview && !purchase) {
+        isLocked = true;
+      } else if (purchase) {
+        if (m.type === 'quiz') {
+          // Locked if any preceding 'video' module is not completed
+          isLocked = modules.slice(0, index).some((prev) => {
+            return (prev.type === 'video' || !prev.type) && !progressMap.get(prev.id);
+          });
+        } else if (m.type === 'essay') {
+          // Locked if any preceding 'video' or 'quiz' module is not completed
+          isLocked = modules.slice(0, index).some((prev) => {
+            return !progressMap.get(prev.id);
+          });
+        }
+      }
+
       return {
         id: m.id,
         title: m.title,
         position: m.order_index,
         isPublished: true,
         isFree: m.is_free_preview,
-        userProgress: prog && userId ? [{ id: prog.id, isCompleted: prog.is_completed, userId: userId, chapterId: m.id }] : null,
+        type: m.type || 'video',
+        isLocked,
+        userProgress: isCompleted && userId ? [{ id: m.id, isCompleted, userId, chapterId: m.id }] : null,
       };
     }),
   };

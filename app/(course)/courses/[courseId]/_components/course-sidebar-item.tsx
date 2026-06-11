@@ -1,6 +1,6 @@
 "use client";
 
-import { CheckCircle, Lock, PlayCircle } from "lucide-react";
+import { CheckCircle, Lock, PlayCircle, HelpCircle, FileText } from "lucide-react";
 import { usePathname, useRouter } from "next/navigation";
 
 import { cn } from "@/lib/utils";
@@ -11,6 +11,7 @@ interface CourseSidebarItemProps {
   isCompleted: boolean;
   courseId: string;
   isLocked: boolean;
+  type?: 'video' | 'quiz' | 'essay';
 };
 
 export const CourseSidebarItem = ({
@@ -19,26 +20,38 @@ export const CourseSidebarItem = ({
   isCompleted,
   courseId,
   isLocked,
+  type,
 }: CourseSidebarItemProps) => {
   const pathname = usePathname();
   const router = useRouter();
 
-  const Icon = isLocked ? Lock : (isCompleted ? CheckCircle : PlayCircle);
+  const Icon = isLocked
+    ? Lock
+    : isCompleted
+    ? CheckCircle
+    : type === "quiz"
+    ? HelpCircle
+    : type === "essay"
+    ? FileText
+    : PlayCircle;
   const isActive = pathname?.includes(id);
 
   const onClick = () => {
+    if (isLocked) return;
     router.push(`/courses/${courseId}/chapters/${id}`);
   }
 
   return (
     <button
       onClick={onClick}
+      disabled={isLocked}
       type="button"
       className={cn(
         "flex items-center gap-x-2 text-slate-500 text-sm font-[500] pl-6 transition-all hover:text-slate-600 hover:bg-slate-300/20",
         isActive && "text-slate-700 bg-slate-200/20 hover:bg-slate-200/20 hover:text-slate-700",
         isCompleted && "text-emerald-700 hover:text-emerald-700",
         isCompleted && isActive && "bg-emerald-200/20",
+        isLocked && "opacity-60 cursor-not-allowed hover:bg-transparent hover:text-slate-500"
       )}
     >
       <div className="flex items-center gap-x-2 py-4">
@@ -47,7 +60,8 @@ export const CourseSidebarItem = ({
           className={cn(
             "text-slate-500",
             isActive && "text-slate-700",
-            isCompleted && "text-emerald-700"
+            isCompleted && "text-emerald-700",
+            isLocked && "text-slate-400"
           )}
         />
         {label}
