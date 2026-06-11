@@ -1,0 +1,382 @@
+{
+  "name": "Certificate Generation Pipeline",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "approved-certificate",
+        "responseMode": "onReceived",
+        "options": {}
+      },
+      "id": "webhook-trigger-id",
+      "name": "Directus Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [
+        200,
+        240
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{ $json.payload?.status }}",
+              "value2": "Approved"
+            },
+            {
+              "value1": "={{ $json.collection }}",
+              "value2": "Submissions"
+            }
+          ]
+        }
+      },
+      "id": "status-check-id",
+      "name": "Check Approved Status",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        400,
+        240
+      ]
+    },
+    {
+      "parameters": {
+        "url": "=https://directus-production-69c0.up.railway.app/items/Submissions/{{ $json.keys[0] }}",
+        "headers": {
+          "parameter": [
+            {
+              "name": "Authorization",
+              "value": "Bearer Qurc2emXjz6L4zz9lLZ99gKWbjPng4MM"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "fetch-submission-id",
+      "name": "Fetch Submission",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [
+        600,
+        180
+      ]
+    },
+    {
+      "parameters": {
+        "url": "=https://directus-production-69c0.up.railway.app/users/{{ $('Fetch Submission').item.json.data.user_id }}",
+        "headers": {
+          "parameter": [
+            {
+              "name": "Authorization",
+              "value": "Bearer Qurc2emXjz6L4zz9lLZ99gKWbjPng4MM"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "fetch-user-id",
+      "name": "Fetch User",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [
+        800,
+        180
+      ]
+    },
+    {
+      "parameters": {
+        "url": "=https://directus-production-69c0.up.railway.app/items/Courses/{{ $('Fetch Submission').item.json.data.course_id }}",
+        "headers": {
+          "parameter": [
+            {
+              "name": "Authorization",
+              "value": "Bearer Qurc2emXjz6L4zz9lLZ99gKWbjPng4MM"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "fetch-course-id",
+      "name": "Fetch Course",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [
+        1000,
+        180
+      ]
+    },
+    {
+      "parameters": {
+        "title": "=Certificate - {{ $('Fetch User').item.json.data.legal_name || ($('Fetch User').item.json.data.first_name + ' ' + $('Fetch User').item.json.data.last_name) }}",
+        "templateDocumentId": "1Pxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+        "values": {
+          "values": [
+            {
+              "name": "legal_name",
+              "value": "={{ $('Fetch User').item.json.data.legal_name || ($('Fetch User').item.json.data.first_name + ' ' + $('Fetch User').item.json.data.last_name) }}"
+            },
+            {
+              "name": "tea_id",
+              "value": "={{ $('Fetch User').item.json.data.tea_id || 'N/A' }}"
+            },
+            {
+              "name": "course_title",
+              "value": "={{ $('Fetch Course').item.json.data.title }}"
+            },
+            {
+              "name": "issued_date",
+              "value": "={{ new Date().toLocaleDateString() }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "create-gdoc-id",
+      "name": "Generate Certificate Doc",
+      "type": "n8n-nodes-base.googleDocs",
+      "typeVersion": 2,
+      "position": [
+        1200,
+        180
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "download",
+        "fileId": "={{ $json.documentId }}",
+        "outputFormat": "pdf",
+        "options": {}
+      },
+      "id": "download-pdf-id",
+      "name": "Export to PDF",
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        1400,
+        180
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://directus-production-69c0.up.railway.app/files",
+        "sendBody": true,
+        "contentType": "multipart-form-data",
+        "bodyFormat": "form-data",
+        "parameters": {
+          "parameter": [
+            {
+              "name": "title",
+              "value": "=Certificate - {{ $('Fetch User').item.json.data.legal_name || ($('Fetch User').item.json.data.first_name + ' ' + $('Fetch User').item.json.data.last_name) }}"
+            }
+          ]
+        },
+        "fileParameters": {
+          "parameter": [
+            {
+              "name": "file",
+              "parameterName": "data"
+            }
+          ]
+        },
+        "headers": {
+          "parameter": [
+            {
+              "name": "Authorization",
+              "value": "Bearer Qurc2emXjz6L4zz9lLZ99gKWbjPng4MM"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "upload-directus-id",
+      "name": "Upload PDF to Directus",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [
+        1600,
+        180
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://directus-production-69c0.up.railway.app/items/Certificates",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\"user_id\":\"{{ $('Fetch Submission').item.json.data.user_id }}\",\"course_id\":\"{{ $('Fetch Submission').item.json.data.course_id }}\",\"pdf_url\":\"https://directus-production-69c0.up.railway.app/assets/{{ $json.data.id }}\",\"issued_date\":\"{{ new Date().toISOString() }}\"}",
+        "headers": {
+          "parameter": [
+            {
+              "name": "Authorization",
+              "value": "Bearer Qurc2emXjz6L4zz9lLZ99gKWbjPng4MM"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "create-certificate-id",
+      "name": "Create Certificate Record",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [
+        1800,
+        180
+      ]
+    },
+    {
+      "parameters": {
+        "fromEmail": "cpe@guidingdiversity.com",
+        "toEmail": "={{ $('Fetch User').item.json.data.email }}",
+        "subject": "=Congratulations! Your Certificate is ready",
+        "html": "=<p>Dear {{ $('Fetch User').item.json.data.first_name }},</p><p>Congratulations on passing the course <strong>{{ $('Fetch Course').item.json.data.title }}</strong>!</p><p>Please find your certificate attached to this email.</p><p>Best regards,<br/>Guiding Diversity CPE team</p>",
+        "attachments": "data",
+        "options": {}
+      },
+      "id": "send-email-id",
+      "name": "Send Certificate Email",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 1,
+      "position": [
+        2000,
+        180
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "delete",
+        "fileId": "={{ $('Generate Certificate Doc').item.json.documentId }}",
+        "options": {}
+      },
+      "id": "delete-temp-doc-id",
+      "name": "Delete Temp Doc",
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        2200,
+        180
+      ]
+    }
+  ],
+  "connections": {
+    "Directus Webhook": {
+      "main": [
+        [
+          {
+            "node": "Check Approved Status",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Approved Status": {
+      "main": [
+        [
+          {
+            "node": "Fetch Submission",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch Submission": {
+      "main": [
+        [
+          {
+            "node": "Fetch User",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch User": {
+      "main": [
+        [
+          {
+            "node": "Fetch Course",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch Course": {
+      "main": [
+        [
+          {
+            "node": "Generate Certificate Doc",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate Certificate Doc": {
+      "main": [
+        [
+          {
+            "node": "Export to PDF",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Export to PDF": {
+      "main": [
+        [
+          {
+            "node": "Upload PDF to Directus",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Upload PDF to Directus": {
+      "main": [
+        [
+          {
+            "node": "Create Certificate Record",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create Certificate Record": {
+      "main": [
+        [
+          {
+            "node": "Send Certificate Email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Certificate Email": {
+      "main": [
+        [
+          {
+            "node": "Delete Temp Doc",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "active": false,
+  "meta": {
+    "templateCredsSetupCompleted": true
+  }
+}
