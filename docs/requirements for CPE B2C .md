@@ -25,3 +25,7 @@ Non functional requirement:
 
 1. Do Texas educators also need to provide their TEA ID number to be printed on the certificate, or is their legal name alongside the provider's CPE Number sufficient? 
 
+
+non MVP requirements 
+1. Google oauth registration - enable the user to login using their google account. Upon registration, the user will also be asked to provide their legal name (required for certificate) and TEA ID (optional).
+2. 

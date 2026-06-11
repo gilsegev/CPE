@@ -47,7 +47,7 @@ This explicit schema replaces the default Prisma models from the clone, mapping 
 * **Implementation:** Integrate the `@directus/sdk` in Next.js. Authentication handles sessions via Directus JWTs. All Next.js data fetching (e.g., loading course lists) is executed via REST/GraphQL queries to the Directus endpoints using the authenticated user's token, ensuring Role-Based Access Control (RBAC) is respected.
 * **Public Guest Access:** To optimize B2C conversions, users can browse the course catalog (`/search`) and view course details/free previews (`/courses/[courseId]`) anonymously. The system queries public-published items directly from Directus without a session. Authentication is deferred and only enforced when the user attempts to enroll in a course (Stripe checkout) or track module progress.
 
-### **4.2 Payment & Access Provisioning (Stripe)**
+[not completed yet]### **4.2 Payment & Access Provisioning (Stripe)**
 
 * **Checkout:** Next.js requests a Stripe Checkout Session via a Directus custom endpoint or serverless function.  
 * **Webhook:** Upon successful payment, Stripe fires a webhook to Directus.  
@@ -82,9 +82,8 @@ This explicit schema replaces the default Prisma models from the clone, mapping 
    * Clone the Antonio Next.js repo.  
    * Strip out Prisma and Clerk.  
    * Wire up the @directus/sdk for authentication and fetch dynamic course data.  
-3. **Phase 3: Video & Payments**  
+3. **Phase 3: Video **  
    * Connect Mux for module video playback.  
-   * Integrate Stripe Checkout and setup the webhook listener in Directus.  
    * Implement forward-seek prevention logic in the video player to ensure course completion compliance.
 4. **Phase 4: Custom Assessment Engineering**  
    * Integrate with email service - send highly detailed and itemized invoice/receipt emails for payments.  
@@ -95,7 +94,8 @@ This explicit schema replaces the default Prisma models from the clone, mapping 
    * Design the Google Doc Certificate template.  
    * Build the Webhook \-> n8n \-> Google Doc \-> PDF \-> Email flow.
    * Remove "Clean user" button 
-   
+6. **Phase 6: Payments**
+   * Integrate Stripe Checkout and setup the webhook listener in Directus.  
 
 ## **6. Phase Verification & Exit Gates**
 
@@ -106,7 +106,7 @@ This explicit schema replaces the default Prisma models from the clone, mapping 
 * **Data Retrieval:** Action helpers successfully load dynamic course and chapter lists directly from the Directus REST API.
 
 ### **Phase 3 Exit Gate: Video & Payments**
-* **Checkout Redirect:** Triggering checkout dynamically creates a Stripe session and redirects the user to the secure payment page.
+
 * **Webhook Provisioning:** Stripe's success callback fires to `/api/webhook`, which uses the Directus SDK to provision an active course purchase.
 * **Mux Video Playback:** Module video components retrieve and stream Mux playback IDs. Free previews play immediately; locked modules require active purchase validation.
 * **Video Seeking Restriction:** Video component intercepts seeking forward past the furthest watched point and snaps the playback position back to safeguard compliance.
@@ -118,3 +118,6 @@ This explicit schema replaces the default Prisma models from the clone, mapping 
 ### **Phase 5 Exit Gate: Automation Pipeline**
 * **Webhook Trigger:** Setting status to `Approved` in Directus fires a webhook to n8n.
 * **Doc Compilation:** n8n compiles PDF certificate, sends email, and writes PDF URL to Directus `Certificates`.
+
+### **Phase 6 Exit Gate: Payments**
+* **Checkout Redirect:** Triggering checkout dynamically creates a Stripe session and redirects the user to the secure payment page.
