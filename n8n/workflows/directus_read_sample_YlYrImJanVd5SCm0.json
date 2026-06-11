@@ -1,0 +1,50 @@
+{
+  "id": "YlYrImJanVd5SCm0",
+  "name": "Directus Read Sample",
+  "active": false,
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "1d8eb697-3f9c-49fb-ab69-232145b37651",
+      "name": "When clicking 'Test workflow'",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        250,
+        240
+      ]
+    },
+    {
+      "parameters": {
+        "url": "https://directus-production-69c0.up.railway.app/items/Courses",
+        "options": {}
+      },
+      "id": "2d7fa69c-2f9b-465a-bc88-29177a641152",
+      "name": "Read Directus Courses",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [
+        480,
+        240
+      ]
+    }
+  ],
+  "connections": {
+    "When clicking 'Test workflow'": {
+      "main": [
+        [
+          {
+            "node": "Read Directus Courses",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "meta": null
+}

@@ -6,7 +6,9 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "n8n:pull": "node scripts/n8n-sync.js pull",
+    "n8n:push": "node scripts/n8n-sync.js push"
   },
   "dependencies": {
     "@directus/sdk": "^21.3.0",
