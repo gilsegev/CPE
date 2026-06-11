@@ -32,7 +32,7 @@ export const CourseCard = ({
           {imageUrl ? (
             <Image
               fill
-              className="object-cover"
+              className="object-contain"
               alt={title}
               src={imageUrl}
             />
