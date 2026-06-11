@@ -44,14 +44,8 @@
     {
       "parameters": {
         "url": "=https://directus-production-69c0.up.railway.app/items/Submissions/{{ $json.keys[0] }}",
-        "headers": {
-          "parameter": [
-            {
-              "name": "Authorization",
-              "value": "Bearer Qurc2emXjz6L4zz9lLZ99gKWbjPng4MM"
-            }
-          ]
-        },
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "httpHeaderAuth",
         "options": {}
       },
       "id": "fetch-submission-id",
@@ -61,19 +55,19 @@
       "position": [
         600,
         180
-      ]
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "directus-admin-token",
+          "name": "Directus Admin Token"
+        }
+      }
     },
     {
       "parameters": {
         "url": "=https://directus-production-69c0.up.railway.app/users/{{ $('Fetch Submission').item.json.data.user_id }}",
-        "headers": {
-          "parameter": [
-            {
-              "name": "Authorization",
-              "value": "Bearer Qurc2emXjz6L4zz9lLZ99gKWbjPng4MM"
-            }
-          ]
-        },
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "httpHeaderAuth",
         "options": {}
       },
       "id": "fetch-user-id",
@@ -83,19 +77,19 @@
       "position": [
         800,
         180
-      ]
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "directus-admin-token",
+          "name": "Directus Admin Token"
+        }
+      }
     },
     {
       "parameters": {
         "url": "=https://directus-production-69c0.up.railway.app/items/Courses/{{ $('Fetch Submission').item.json.data.course_id }}",
-        "headers": {
-          "parameter": [
-            {
-              "name": "Authorization",
-              "value": "Bearer Qurc2emXjz6L4zz9lLZ99gKWbjPng4MM"
-            }
-          ]
-        },
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "httpHeaderAuth",
         "options": {}
       },
       "id": "fetch-course-id",
@@ -105,7 +99,13 @@
       "position": [
         1000,
         180
-      ]
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "directus-admin-token",
+          "name": "Directus Admin Token"
+        }
+      }
     },
     {
       "parameters": {
@@ -181,14 +181,8 @@
             }
           ]
         },
-        "headers": {
-          "parameter": [
-            {
-              "name": "Authorization",
-              "value": "Bearer Qurc2emXjz6L4zz9lLZ99gKWbjPng4MM"
-            }
-          ]
-        },
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "httpHeaderAuth",
         "options": {}
       },
       "id": "upload-directus-id",
@@ -198,7 +192,13 @@
       "position": [
         1600,
         180
-      ]
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "directus-admin-token",
+          "name": "Directus Admin Token"
+        }
+      }
     },
     {
       "parameters": {
@@ -207,14 +207,8 @@
         "sendBody": true,
         "specifyBody": "json",
         "jsonBody": "={\"user_id\":\"{{ $('Fetch Submission').item.json.data.user_id }}\",\"course_id\":\"{{ $('Fetch Submission').item.json.data.course_id }}\",\"pdf_url\":\"https://directus-production-69c0.up.railway.app/assets/{{ $json.data.id }}\",\"issued_date\":\"{{ new Date().toISOString() }}\"}",
-        "headers": {
-          "parameter": [
-            {
-              "name": "Authorization",
-              "value": "Bearer Qurc2emXjz6L4zz9lLZ99gKWbjPng4MM"
-            }
-          ]
-        },
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "httpHeaderAuth",
         "options": {}
       },
       "id": "create-certificate-id",
@@ -224,7 +218,13 @@
       "position": [
         1800,
         180
-      ]
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "directus-admin-token",
+          "name": "Directus Admin Token"
+        }
+      }
     },
     {
       "parameters": {
