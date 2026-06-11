@@ -18,16 +18,13 @@ const SearchPage = async ({
   searchParams
 }: SearchPageProps) => {
   const user = await getCurrentUser();
-
-  if (!user) {
-    return redirect("/sign-in");
-  }
+  const userId = user?.id;
 
   // Categories collection is not used in Phase 1 database schema, returning empty array
   const categories: any[] = [];
 
   const courses = await getCourses({
-    userId: user.id,
+    userId,
     ...searchParams,
   });
 

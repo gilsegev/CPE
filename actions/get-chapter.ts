@@ -2,7 +2,7 @@ import { db } from "@/lib/db";
 import { readItems, readItem } from "@directus/sdk";
 
 interface GetChapterProps {
-  userId: string;
+  userId?: string | null;
   courseId: string;
   chapterId: string; // Map to module_id
 }
@@ -14,7 +14,7 @@ export const getChapter = async ({
 }: GetChapterProps) => {
   try {
     // 1. Fetch purchase status for the course
-    const purchases = await db.request(
+    const purchases = userId ? await db.request(
       readItems("Purchases", {
         filter: {
           user_id: { _eq: userId },
@@ -23,7 +23,7 @@ export const getChapter = async ({
         },
         limit: 1,
       })
-    );
+    ) : [];
     const purchase = purchases[0] || null;
 
     // 2. Fetch course pricing
@@ -98,7 +98,7 @@ export const getChapter = async ({
     }
 
     // 5. Fetch user progress for this module
-    const progresses = await db.request(
+    const progresses = userId ? await db.request(
       readItems("UserProgress", {
         filter: {
           user_id: { _eq: userId },
@@ -107,7 +107,7 @@ export const getChapter = async ({
         limit: 1,
         fields: ["id", "is_completed"],
       })
-    );
+    ) : [];
 
     const userProgress = progresses[0]
       ? { id: progresses[0].id, isCompleted: progresses[0].is_completed }

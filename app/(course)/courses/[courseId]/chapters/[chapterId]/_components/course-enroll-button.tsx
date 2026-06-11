@@ -10,15 +10,24 @@ import { formatPrice } from "@/lib/format";
 interface CourseEnrollButtonProps {
   price: number;
   courseId: string;
+  isLoggedIn: boolean;
+  chapterId: string;
 }
 
 export const CourseEnrollButton = ({
   price,
   courseId,
+  isLoggedIn,
+  chapterId,
 }: CourseEnrollButtonProps) => {
   const [isLoading, setIsLoading] = useState(false);
 
   const onClick = async () => {
+    if (!isLoggedIn) {
+      window.location.assign(`/sign-in?redirectTo=/courses/${courseId}/chapters/${chapterId}`);
+      return;
+    }
+
     try {
       setIsLoading(true);
 

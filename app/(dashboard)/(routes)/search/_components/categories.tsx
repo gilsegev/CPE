@@ -1,15 +1,15 @@
 "use client";
 
 import {
-  FcEngineering,
-  FcFilmReel,
-  FcMultipleDevices,
-  FcMusic,
-  FcOldTimeCamera,
-  FcSalesPerformance,
-  FcSportsMode
-} from "react-icons/fc";
-import { IconType } from "react-icons";
+  Music,
+  Camera,
+  Dumbbell,
+  LineChart,
+  Laptop,
+  Film,
+  Settings,
+  LucideIcon
+} from "lucide-react";
 
 import { CategoryItem } from "./category-item";
 
@@ -22,14 +22,14 @@ interface CategoriesProps {
   items: Category[];
 }
 
-const iconMap: Record<Category["name"], IconType> = {
-  "Music": FcMusic,
-  "Photography": FcOldTimeCamera,
-  "Fitness": FcSportsMode,
-  "Accounting": FcSalesPerformance,
-  "Computer Science": FcMultipleDevices,
-  "Filming": FcFilmReel,
-  "Engineering": FcEngineering,
+const iconMap: Record<Category["name"], LucideIcon> = {
+  "Music": Music,
+  "Photography": Camera,
+  "Fitness": Dumbbell,
+  "Accounting": LineChart,
+  "Computer Science": Laptop,
+  "Filming": Film,
+  "Engineering": Settings,
 };
 
 export const Categories = ({

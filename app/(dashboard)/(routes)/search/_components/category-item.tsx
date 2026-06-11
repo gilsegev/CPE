@@ -1,7 +1,7 @@
 "use client";
 
 import qs from "query-string";
-import { IconType } from "react-icons";
+import { LucideIcon } from "lucide-react";
 import { 
   usePathname, 
   useRouter, 
@@ -13,7 +13,7 @@ import { cn } from "@/lib/utils";
 interface CategoryItemProps {
   label: string;
   value?: string;
-  icon?: IconType;
+  icon?: LucideIcon;
 };
 
 export const CategoryItem = ({

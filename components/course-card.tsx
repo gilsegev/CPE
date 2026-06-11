@@ -28,13 +28,19 @@ export const CourseCard = ({
   return (
     <Link href={`/courses/${id}`}>
       <div className="group hover:shadow-sm transition overflow-hidden border rounded-lg p-3 h-full">
-        <div className="relative w-full aspect-video rounded-md overflow-hidden">
-          <Image
-            fill
-            className="object-cover"
-            alt={title}
-            src={imageUrl}
-          />
+        <div className="relative w-full aspect-video rounded-md overflow-hidden bg-slate-100">
+          {imageUrl ? (
+            <Image
+              fill
+              className="object-cover"
+              alt={title}
+              src={imageUrl}
+            />
+          ) : (
+            <div className="absolute inset-0 bg-gradient-to-br from-sky-400 via-blue-500 to-indigo-600 flex items-center justify-center">
+              <BookOpen className="w-12 h-12 text-white/70 animate-pulse" />
+            </div>
+          )}
         </div>
         <div className="flex flex-col pt-2">
           <div className="text-lg md:text-base font-medium group-hover:text-sky-700 transition line-clamp-2">

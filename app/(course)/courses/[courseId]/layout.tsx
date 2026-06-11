@@ -16,10 +16,7 @@ const CourseLayout = async ({
   params: { courseId: string };
 }) => {
   const user = await getCurrentUser();
-
-  if (!user) {
-    return redirect("/sign-in");
-  }
+  const userId = user?.id;
 
   const directusUrl = process.env.NEXT_PUBLIC_DIRECTUS_URL || 'https://directus-production-69c0.up.railway.app';
 
@@ -48,10 +45,10 @@ const CourseLayout = async ({
   const moduleIds = modules.map((m) => m.id);
 
   // 3. Fetch progress for these modules for the current user
-  const progresses = moduleIds.length > 0 ? await db.request(
+  const progresses = (moduleIds.length > 0 && userId) ? await db.request(
     readItems("UserProgress", {
       filter: {
-        user_id: { _eq: user.id },
+        user_id: { _eq: userId },
         module_id: { _in: moduleIds },
       },
       fields: ["id", "module_id", "is_completed"],
@@ -80,12 +77,12 @@ const CourseLayout = async ({
         position: m.order_index,
         isPublished: true,
         isFree: m.is_free_preview,
-        userProgress: prog ? [{ id: prog.id, isCompleted: prog.is_completed, userId: user.id, chapterId: m.id }] : null,
+        userProgress: prog && userId ? [{ id: prog.id, isCompleted: prog.is_completed, userId: userId, chapterId: m.id }] : null,
       };
     }),
   };
 
-  const progressCount = await getProgress(user.id, course.id);
+  const progressCount = userId ? await getProgress(userId, course.id) : 0;
 
   return (
     <div className="h-full">

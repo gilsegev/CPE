@@ -135,7 +135,7 @@ async function main() {
         { field: 'id', type: 'uuid', schema: { is_primary_key: true }, meta: { interface: 'input', readonly: true, hidden: true, special: ['uuid'] } },
         { field: 'title', type: 'string', meta: { interface: 'input', required: true } },
         { field: 'order_index', type: 'integer', schema: { default_value: 0 }, meta: { interface: 'input' } },
-        { field: 'mux_asset_id', type: 'string', meta: { interface: 'input' } },
+        { field: 'mux_asset_id', type: 'string', meta: { interface: 'input', note: 'Enter the Mux Playback ID (not the Asset ID) to allow video streaming and playback.' } },
         { field: 'is_free_preview', type: 'boolean', schema: { default_value: false }, meta: { interface: 'boolean' } },
         { field: 'course_id', type: 'uuid', meta: { interface: 'select-dropdown-m2o', hidden: false } }
       ]

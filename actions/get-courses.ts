@@ -5,7 +5,7 @@ import { getProgress } from "@/actions/get-progress";
 type CourseWithProgressWithCategory = any; // Interface mapped to UI requirements
 
 type GetCourses = {
-  userId: string;
+  userId?: string | null;
   title?: string;
   categoryId?: string; // Kept for interface compatibility but ignored since Directus has no Categories collection
 };
@@ -27,18 +27,20 @@ export const getCourses = async ({
       })
     );
 
-    // 2. Fetch all active purchases for the current user
-    const purchases = await db.request(
-      readItems("Purchases", {
-        filter: {
-          user_id: { _eq: userId },
-          status: { _eq: "active" },
-        },
-        fields: ["course_id"],
-      })
-    );
-
-    const purchasedCourseIds = new Set(purchases.map((p) => p.course_id));
+    // 2. Fetch all active purchases for the current user (if logged in)
+    const purchasedCourseIds = new Set<string>();
+    if (userId) {
+      const purchases = await db.request(
+        readItems("Purchases", {
+          filter: {
+            user_id: { _eq: userId },
+            status: { _eq: "active" },
+          },
+          fields: ["course_id"],
+        })
+      );
+      purchases.forEach((p) => purchasedCourseIds.add(p.course_id));
+    }
 
     // 3. Map courses and fetch their respective modules and progress
     const coursesWithProgress = await Promise.all(
@@ -56,7 +58,7 @@ export const getCourses = async ({
         const hasPurchased = purchasedCourseIds.has(course.id);
         let progress: number | null = null;
 
-        if (hasPurchased) {
+        if (hasPurchased && userId) {
           progress = await getProgress(userId, course.id);
         }
 

@@ -44,7 +44,8 @@ This explicit schema replaces the default Prisma models from the clone, mapping 
 ### **4.1 Authentication & Database Access**
 
 * **Action:** Remove Clerk Auth and Prisma ORM from the Next.js clone.  
-* **Implementation:** Integrate the @directus/sdk in Next.js. Authentication handles sessions via Directus JWTs. All Next.js data fetching (e.g., loading course lists) is executed via REST/GraphQL queries to the Directus endpoints using the authenticated user's token, ensuring Role-Based Access Control (RBAC) is respected.
+* **Implementation:** Integrate the `@directus/sdk` in Next.js. Authentication handles sessions via Directus JWTs. All Next.js data fetching (e.g., loading course lists) is executed via REST/GraphQL queries to the Directus endpoints using the authenticated user's token, ensuring Role-Based Access Control (RBAC) is respected.
+* **Public Guest Access:** To optimize B2C conversions, users can browse the course catalog (`/search`) and view course details/free previews (`/courses/[courseId]`) anonymously. The system queries public-published items directly from Directus without a session. Authentication is deferred and only enforced when the user attempts to enroll in a course (Stripe checkout) or track module progress.
 
 ### **4.2 Payment & Access Provisioning (Stripe)**
 
@@ -79,19 +80,22 @@ This explicit schema replaces the default Prisma models from the clone, mapping 
    * Connect Mux for module video playback.  
    * Integrate Stripe Checkout and setup the webhook listener in Directus.  
 4. **Phase 4: Custom Assessment Engineering**  
+   * Integrate with email service - send highly detailed and itemized invoice/receipt emails for payments.  
    * Build the Frontend Quiz & Essay submission UI.  
    * Implement the submission logic and Directus storage.  
 5. **Phase 5: Automation Pipeline**  
    * Deploy n8n.  
    * Design the Google Doc Certificate template.  
    * Build the Webhook \-> n8n \-> Google Doc \-> PDF \-> Email flow.
+   * Remove "Clean user" button 
+   
 
 ## **6. Phase Verification & Exit Gates**
 
 ### **Phase 2 Exit Gate: Frontend Surgery**
 * **Build Check:** Next.js application compiles cleanly using `npm run build` with zero TypeScript or webpack errors.
 * **Authentication:** Custom `/sign-in` and `/sign-up` forms successfully verify, create, and log in Directus users. Legal Name (required) and TEA ID (optional) are persisted.
-* **Session Management:** Secure HTTP-only cookies (`directus_access_token` and `directus_refresh_token`) protect all dynamic `/courses` layouts.
+* **Session Management:** Secure HTTP-only cookies (`directus_access_token` and `directus_refresh_token`) protect personalized student portals (e.g., `/` home dashboard and checkout/progress api routes), while catalog search and preview chapters are publicly accessible.
 * **Data Retrieval:** Action helpers successfully load dynamic course and chapter lists directly from the Directus REST API.
 
 ### **Phase 3 Exit Gate: Video & Payments**

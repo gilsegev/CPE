@@ -4,7 +4,7 @@ import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { stripe } from "@/lib/stripe";
-import { readItem, readItems } from "@directus/sdk";
+import { readItem, readItems, createItem } from "@directus/sdk";
 
 export async function POST(
   req: Request,
@@ -58,20 +58,18 @@ export async function POST(
       },
     ];
 
-    // Create Stripe checkout session using customer_email directly (simplifying customer model)
-    const session = await stripe.checkout.sessions.create({
-      customer_email: user.email,
-      line_items,
-      mode: "payment",
-      success_url: `${process.env.NEXT_PUBLIC_APP_URL}/courses/${course.id}?success=1`,
-      cancel_url: `${process.env.NEXT_PUBLIC_APP_URL}/courses/${course.id}?canceled=1`,
-      metadata: {
-        courseId: course.id,
-        userId: user.id,
-      },
-    });
+    // Create Mock purchase record directly in Directus, bypassing Stripe calls for testing
+    await db.request(
+      createItem("Purchases", {
+        user_id: user.id,
+        course_id: course.id,
+        status: "active",
+        stripe_payment_id: `mock_pay_${Date.now()}`,
+      })
+    );
 
-    return NextResponse.json({ url: session.url });
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+    return NextResponse.json({ url: `${appUrl}/courses/${course.id}?success=1` });
   } catch (error) {
     console.error("[COURSE_ID_CHECKOUT]", error);
     return new NextResponse("Internal Error", { status: 500 });

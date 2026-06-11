@@ -9,6 +9,8 @@ export async function middleware(request: NextRequest) {
     pathname.startsWith("/sign-in") ||
     pathname.startsWith("/sign-up") ||
     pathname.startsWith("/api/webhook") ||
+    pathname.startsWith("/search") ||
+    pathname.startsWith("/courses") ||
     pathname === "/"; // Home landing page is public
 
   let accessToken = request.cookies.get("directus_access_token")?.value;

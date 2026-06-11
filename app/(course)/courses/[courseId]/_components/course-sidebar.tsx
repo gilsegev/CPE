@@ -1,4 +1,6 @@
 import { redirect } from "next/navigation";
+import Link from "next/link";
+import { ArrowLeft } from "lucide-react";
 
 import { getCurrentUser } from "@/lib/auth";
 import { db } from "@/lib/db";
@@ -17,27 +19,31 @@ export const CourseSidebar = async ({
   progressCount,
 }: CourseSidebarProps) => {
   const user = await getCurrentUser();
+  const userId = user?.id;
 
-  if (!user) {
-    return redirect("/sign-in");
-  }
-
-  // Fetch active purchase for current user and course
-  const purchases = await db.request(
+  // Fetch active purchase for current user and course (if logged in)
+  const purchases = userId ? await db.request(
     readItems("Purchases", {
       filter: {
-        user_id: { _eq: user.id },
+        user_id: { _eq: userId },
         course_id: { _eq: course.id },
         status: { _eq: "active" },
       },
       limit: 1,
     })
-  );
+  ) : [];
   const purchase = purchases[0] || null;
 
   return (
     <div className="h-full border-r flex flex-col overflow-y-auto shadow-sm">
       <div className="p-8 flex flex-col border-b">
+        <Link 
+          href="/" 
+          className="flex items-center text-sm text-slate-500 hover:text-slate-800 mb-6 transition"
+        >
+          <ArrowLeft className="h-4 w-4 mr-2" />
+          Back to dashboard
+        </Link>
         <h1 className="font-semibold">
           {course.title}
         </h1>
