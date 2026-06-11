@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import axios from "axios";
 import toast from "react-hot-toast";
 import { Check, X, ArrowLeft, ArrowRight, RefreshCw, Trophy, AlertCircle, HelpCircle } from "lucide-react";
@@ -71,6 +71,48 @@ export const QuizAssessment = ({
 
   const [selectedOption, setSelectedOption] = useState<number | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchQuizData = async () => {
+      try {
+        const response = await axios.get(`/api/courses/${courseId}/chapters/${chapterId}/quiz`);
+        if (response.data) {
+          setQuestions(response.data.questions || []);
+          setAnswers(response.data.answers || {});
+          setCorrectAnswers(response.data.correctAnswers || {});
+          setIsCompleted(response.data.isCompleted || false);
+          
+          if (response.data.isCompleted && response.data.questions?.length > 0) {
+            let correct = 0;
+            response.data.questions.forEach((q: Question) => {
+              if (
+                response.data.answers[q.id] !== undefined &&
+                response.data.correctAnswers[q.id]?.correctIndex === response.data.answers[q.id]
+              ) {
+                correct++;
+              }
+            });
+            setScore(Math.round((correct / response.data.questions.length) * 100));
+          } else {
+            setScore(null);
+          }
+
+          if (!response.data.isCompleted && response.data.questions) {
+            const firstUnanswered = response.data.questions.findIndex((q: Question) => !(q.id in response.data.answers));
+            setCurrentIndex(firstUnanswered === -1 ? 0 : firstUnanswered);
+          } else {
+            setCurrentIndex(0);
+          }
+        }
+      } catch (err) {
+        console.error("Failed to load quiz client-side", err);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    fetchQuizData();
+  }, [courseId, chapterId]);
 
   const currentQuestion = questions[currentIndex];
   const isQuestionAnswered = currentQuestion?.id in answers;
@@ -194,6 +236,15 @@ export const QuizAssessment = ({
       window.location.assign(`/search`);
     }
   };
+
+  if (isLoading) {
+    return (
+      <div className="max-w-2xl mx-auto p-5 md:p-6 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/80 shadow-md mt-6 flex flex-col items-center justify-center min-h-[300px]">
+        <RefreshCw className="h-8 w-8 text-indigo-500 animate-spin mb-4" />
+        <span className="text-sm text-slate-500 font-medium">Loading quiz state...</span>
+      </div>
+    );
+  }
 
   if (questions.length === 0) {
     return (

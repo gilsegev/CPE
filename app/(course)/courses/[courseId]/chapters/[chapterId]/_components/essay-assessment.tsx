@@ -25,6 +25,7 @@ export const EssayAssessment = ({
   initialData,
 }: EssayAssessmentProps) => {
   const [text, setText] = useState(initialData?.essay_text || "");
+  const [loadedText, setLoadedText] = useState(initialData?.essay_text || "");
   const [status, setStatus] = useState<"Draft" | "Pending" | "Approved" | "Rejected" | "None">(
     initialData?.status || "None"
   );
@@ -32,16 +33,37 @@ export const EssayAssessment = ({
   const [isSubmitModalOpen, setIsSubmitModalOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [initialLoaded, setInitialLoaded] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+
+  // Client-side fetch on mount to bypass Next.js client router cache
+  useEffect(() => {
+    const fetchDraft = async () => {
+      try {
+        const response = await axios.get(`/api/courses/${courseId}/chapters/${chapterId}/essay`);
+        if (response.data) {
+          setText(response.data.essay_text || "");
+          setLoadedText(response.data.essay_text || "");
+          setStatus(response.data.status || "None");
+        } else {
+          setText("");
+          setLoadedText("");
+          setStatus("None");
+        }
+      } catch (err) {
+        console.error("Failed to load draft client-side", err);
+      } finally {
+        setIsLoading(false);
+        setInitialLoaded(true);
+      }
+    };
+    fetchDraft();
+  }, [courseId, chapterId]);
 
   // Debounced auto-save effect
   useEffect(() => {
-    setInitialLoaded(true);
-  }, []);
-
-  useEffect(() => {
-    if (!initialLoaded) return;
+    if (!initialLoaded || isLoading) return;
     if (status !== "Draft" && status !== "None") return; // Submissions are locked if Pending/Approved/Rejected
-    if (!text.trim() || text === (initialData?.essay_text || "")) return;
+    if (!text.trim() || text === loadedText) return;
 
     setSaveState("saving");
     const delayDebounce = setTimeout(async () => {
@@ -52,30 +74,41 @@ export const EssayAssessment = ({
         });
         setStatus("Draft");
         setSaveState("saved");
+        setLoadedText(text);
       } catch (err) {
         setSaveState("error");
       }
     }, 2000);
 
     return () => clearTimeout(delayDebounce);
-  }, [text, initialLoaded, courseId, chapterId, status, initialData]);
+  }, [text, initialLoaded, isLoading, courseId, chapterId, status, loadedText]);
 
   const onSaveManual = async () => {
     if (status !== "Draft" && status !== "None") return;
     try {
       setSaveState("saving");
-      await axios.post(`/api/courses/${courseId}/chapters/[chapterId]/essay`, {
+      await axios.post(`/api/courses/${courseId}/chapters/${chapterId}/essay`, {
         essayText: text,
         status: "Draft",
       });
       setStatus("Draft");
       setSaveState("saved");
+      setLoadedText(text);
       toast.success("Draft saved successfully");
     } catch (err) {
       setSaveState("error");
       toast.error("Failed to save draft");
     }
   };
+
+  if (isLoading) {
+    return (
+      <div className="max-w-4xl mx-auto p-5 md:p-8 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/80 shadow-md mt-6 flex flex-col items-center justify-center min-h-[300px]">
+        <Clock className="h-8 w-8 text-indigo-500 animate-spin mb-4" />
+        <span className="text-sm text-slate-500 font-medium">Loading assessment state...</span>
+      </div>
+    );
+  }
 
   const onSubmitFinal = async () => {
     if (!text.trim()) {
