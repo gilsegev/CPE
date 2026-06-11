@@ -55,6 +55,17 @@ export async function POST(req: Request) {
       await db.request(deleteItems("Certificates", certificates.map((c) => c.id)));
     }
 
+    // 5. Clean QuizProgress
+    const quizProgresses = await db.request(
+      readItems("QuizProgress", {
+        filter: { user_id: { _eq: user.id } },
+        fields: ["id"],
+      })
+    );
+    if (quizProgresses.length > 0) {
+      await db.request(deleteItems("QuizProgress", quizProgresses.map((qp) => qp.id)));
+    }
+
     return new NextResponse("Success", { status: 200 });
   } catch (error) {
     console.error("[USER_CLEAN_ERROR]", error);
