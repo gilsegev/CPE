@@ -2,7 +2,7 @@
 
 import axios from "axios";
 import MuxPlayer from "@mux/mux-player-react";
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { toast } from "react-hot-toast";
 import { useRouter } from "next/navigation";
 import { Loader2, Lock } from "lucide-react";
@@ -32,6 +32,8 @@ export const VideoPlayer = ({
   const [isReady, setIsReady] = useState(false);
   const router = useRouter();
   const confetti = useConfettiStore();
+  const maxTimeWatched = useRef(0);
+  const previousTime = useRef(0);
 
   const onEnd = async () => {
     try {
@@ -56,6 +58,29 @@ export const VideoPlayer = ({
     }
   }
 
+  const onTimeUpdate = (e: any) => {
+    const player = e.target;
+    if (!player) return;
+
+    // Intercept seeking forward (allowing a 2-second buffer for natural playback updates/jumps)
+    if (player.currentTime > maxTimeWatched.current + 2.0) {
+      player.currentTime = previousTime.current;
+      toast.error("Forward seeking is disabled. Please watch the module in full.");
+    } else {
+      previousTime.current = player.currentTime;
+      maxTimeWatched.current = Math.max(maxTimeWatched.current, player.currentTime);
+    }
+  };
+
+  const onSeeking = (e: any) => {
+    const player = e.target;
+    if (!player) return;
+
+    if (player.currentTime <= maxTimeWatched.current) {
+      previousTime.current = player.currentTime;
+    }
+  };
+
   return (
     <div className="relative aspect-video">
       {!isReady && !isLocked && (
@@ -79,6 +104,8 @@ export const VideoPlayer = ({
           )}
           onCanPlay={() => setIsReady(true)}
           onEnded={onEnd}
+          onTimeUpdate={onTimeUpdate}
+          onSeeking={onSeeking}
           autoPlay
           playbackId={playbackId}
         />

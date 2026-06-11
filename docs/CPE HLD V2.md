@@ -66,6 +66,12 @@ This explicit schema replaces the default Prisma models from the clone, mapping 
 * **Generation:** n8n exports the Google Doc as a PDF.  
 * **Delivery:** n8n triggers the Email API (Resend) to email the PDF to the user and writes the PDF URL back to the **Certificates** table in Directus for future access.
 
+### **4.5 Video Progress Guard (Seeking Restrictions)**
+
+* **Compliance Requirement:** To satisfy TEA certification standards, students must watch video modules in their entirety.
+* **Implementation:** The Next.js video component intercepts seek events via the Mux Player `onTimeUpdate` and `onSeeking` event streams.
+* **Behavior:** The player tracks the furthest watched timestamp. If a student attempts to seek forward beyond this point, the video snaps back to the furthest watched time and triggers a warning toast. Backward seeking is fully enabled to permit review.
+
 ## **5\. Implementation Phases**
 
 1. **Phase 1: Infrastructure & Backend Foundation**  
@@ -79,6 +85,7 @@ This explicit schema replaces the default Prisma models from the clone, mapping 
 3. **Phase 3: Video & Payments**  
    * Connect Mux for module video playback.  
    * Integrate Stripe Checkout and setup the webhook listener in Directus.  
+   * Implement forward-seek prevention logic in the video player to ensure course completion compliance.
 4. **Phase 4: Custom Assessment Engineering**  
    * Integrate with email service - send highly detailed and itemized invoice/receipt emails for payments.  
    * Build the Frontend Quiz & Essay submission UI.  
@@ -102,6 +109,7 @@ This explicit schema replaces the default Prisma models from the clone, mapping 
 * **Checkout Redirect:** Triggering checkout dynamically creates a Stripe session and redirects the user to the secure payment page.
 * **Webhook Provisioning:** Stripe's success callback fires to `/api/webhook`, which uses the Directus SDK to provision an active course purchase.
 * **Mux Video Playback:** Module video components retrieve and stream Mux playback IDs. Free previews play immediately; locked modules require active purchase validation.
+* **Video Seeking Restriction:** Video component intercepts seeking forward past the furthest watched point and snaps the playback position back to safeguard compliance.
 
 ### **Phase 4 Exit Gate: Custom Assessment Engineering**
 * **Real-time Quiz Feedback:** Quiz component validates multiple-choice answers immediately on screen (correct/incorrect styling).
