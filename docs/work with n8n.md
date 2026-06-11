@@ -36,6 +36,25 @@ To bind your local workspace scripts with your Railway n8n instance, configure t
 
 ---
 
+## 🔑 3. Configure Directus Credentials in n8n UI
+
+To prevent exposing raw API tokens in your version-controlled workflow JSON files, the workflows reference predefined credentials instead of hardcoding secret keys.
+
+You must configure the **Directus Admin Token** in n8n's secure database:
+
+1. Open your n8n browser UI.
+2. Go to **Credentials** in the left sidebar, and click **Add Credential** in the top right.
+3. Search for and select **Header Auth**.
+4. Configure the parameters:
+   * **Name:** `Authorization`
+   * **Value:** `Bearer Qurc2emXjz6L4zz9lLZ99gKWbjPng4MM` *(or your actual Directus Admin token)*
+5. Rename the credential name (at the top of the modal) to exactly: **`Directus Admin Token`**.
+6. Click **Save**.
+
+This allows n8n HTTP Request nodes to authenticate automatically using the ID reference `directus-admin-token`, keeping your Git commits clean of credentials.
+
+---
+
 ## 🔄 3. Development Workflow
 
 To avoid n8n enterprise costs while retaining Git history, use our CLI synchronization scripts:
