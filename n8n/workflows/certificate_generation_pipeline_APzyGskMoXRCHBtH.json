@@ -7,7 +7,6 @@
       "parameters": {
         "httpMethod": "POST",
         "path": "approved-certificate",
-        "responseMode": "onReceived",
         "options": {}
       },
       "id": "webhook-trigger-id",
@@ -15,7 +14,7 @@
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 1,
       "position": [
-        100,
+        112,
         240
       ],
       "webhookId": "4744f850-7598-438b-93bd-f2d8329ab0cd"
@@ -40,7 +39,7 @@
       "type": "n8n-nodes-base.if",
       "typeVersion": 1,
       "position": [
-        280,
+        288,
         240
       ]
     },
@@ -56,8 +55,8 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.1,
       "position": [
-        460,
-        180
+        464,
+        192
       ],
       "credentials": {
         "httpHeaderAuth": {
@@ -79,7 +78,7 @@
       "typeVersion": 4.1,
       "position": [
         640,
-        180
+        192
       ],
       "credentials": {
         "httpHeaderAuth": {
@@ -100,8 +99,8 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.1,
       "position": [
-        820,
-        180
+        832,
+        192
       ],
       "credentials": {
         "httpHeaderAuth": {
@@ -112,7 +111,6 @@
     },
     {
       "parameters": {
-        "resource": "file",
         "operation": "copy",
         "fileId": "1F8S_-gBt6KrnV_CCj-QTk5RdFphpYIlWyJNPfOtiamU",
         "name": "=Certificate - {{ ($('Fetch User').item.json.data.legal_name && $('Fetch User').item.json.data.legal_name !== 'null' && $('Fetch User').item.json.data.legal_name.trim() !== '') ? $('Fetch User').item.json.data.legal_name : (($('Fetch User').item.json.data.first_name || '') + ' ' + ($('Fetch User').item.json.data.last_name || '')).trim() }}",
@@ -123,8 +121,8 @@
       "type": "n8n-nodes-base.googleDrive",
       "typeVersion": 3,
       "position": [
-        1000,
-        180
+        1008,
+        192
       ],
       "credentials": {
         "googleDriveOAuth2Api": {
@@ -135,50 +133,40 @@
     },
     {
       "parameters": {
-        "resource": "document",
-        "documentURL": "={{ $('Copy Template').item.json.id }}",
         "operation": "update",
+        "documentURL": "={{ $('Copy Template').item.json.id }}",
         "actionsUi": {
           "actionFields": [
             {
-              "object": "text",
               "action": "replaceAll",
               "text": "{{legal_name}}",
-              "replaceText": "={{ ($('Fetch User').item.json.data.legal_name && $('Fetch User').item.json.data.legal_name !== 'null' && $('Fetch User').item.json.data.legal_name.trim() !== '') ? $('Fetch User').item.json.data.legal_name : (($('Fetch User').item.json.data.first_name || '') + ' ' + ($('Fetch User').item.json.data.last_name || '')).trim() }}",
-              "matchCase": false
+              "replaceText": "={{ ($('Fetch User').item.json.data.legal_name && $('Fetch User').item.json.data.legal_name !== 'null' && $('Fetch User').item.json.data.legal_name.trim() !== '') ? $('Fetch User').item.json.data.legal_name : (($('Fetch User').item.json.data.first_name || '') + ' ' + ($('Fetch User').item.json.data.last_name || '')).trim() }}"
             },
             {
-              "object": "text",
               "action": "replaceAll",
               "text": "{{course_title}}",
-              "replaceText": "={{ $('Fetch Course').item.json.data.title }}",
-              "matchCase": false
+              "replaceText": "={{ $('Fetch Course').item.json.data.title }}"
             },
             {
-              "object": "text",
               "action": "replaceAll",
               "text": "{{tea_id}}",
-              "replaceText": "={{ $('Fetch User').item.json.data.tea_id || 'N/A' }}",
-              "matchCase": false
+              "replaceText": "={{ $('Fetch User').item.json.data.tea_id || 'N/A' }}"
             },
             {
-              "object": "text",
               "action": "replaceAll",
               "text": "{{issued_date}}",
-              "replaceText": "={{ new Date().toLocaleDateString() }}",
-              "matchCase": false
+              "replaceText": "={{ new Date().toLocaleDateString() }}"
             }
           ]
-        },
-        "options": {}
+        }
       },
       "id": "update-gdoc-id",
       "name": "Generate Certificate Doc",
       "type": "n8n-nodes-base.googleDocs",
       "typeVersion": 2,
       "position": [
-        1180,
-        180
+        1184,
+        192
       ],
       "credentials": {
         "googleDocsOAuth2Api": {
@@ -189,7 +177,6 @@
     },
     {
       "parameters": {
-        "resource": "file",
         "operation": "download",
         "fileId": "={{ $('Copy Template').item.json.id }}",
         "options": {
@@ -206,7 +193,7 @@
       "typeVersion": 3,
       "position": [
         1360,
-        180
+        192
       ],
       "credentials": {
         "googleDriveOAuth2Api": {
@@ -219,9 +206,10 @@
       "parameters": {
         "method": "POST",
         "url": "https://directus-production-69c0.up.railway.app/files",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "httpHeaderAuth",
         "sendBody": true,
         "contentType": "multipart-form-data",
-        "bodyFormat": "form-data",
         "bodyParameters": {
           "parameters": [
             {
@@ -235,8 +223,6 @@
             }
           ]
         },
-        "authentication": "predefinedCredentialType",
-        "nodeCredentialType": "httpHeaderAuth",
         "options": {}
       },
       "id": "upload-directus-id",
@@ -244,8 +230,8 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.1,
       "position": [
-        1540,
-        180
+        1552,
+        192
       ],
       "credentials": {
         "httpHeaderAuth": {
@@ -258,11 +244,11 @@
       "parameters": {
         "method": "POST",
         "url": "https://directus-production-69c0.up.railway.app/items/Certificates",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "httpHeaderAuth",
         "sendBody": true,
         "specifyBody": "json",
         "jsonBody": "={\"user_id\":\"{{ $('Fetch Submission').item.json.data.user_id }}\",\"course_id\":\"{{ $('Fetch Submission').item.json.data.course_id }}\",\"pdf_url\":\"https://directus-production-69c0.up.railway.app/assets/{{ $json.data.id }}\",\"issued_date\":\"{{ new Date().toISOString() }}\"}",
-        "authentication": "predefinedCredentialType",
-        "nodeCredentialType": "httpHeaderAuth",
         "options": {}
       },
       "id": "create-certificate-id",
@@ -270,8 +256,8 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.1,
       "position": [
-        1720,
-        180
+        1728,
+        192
       ],
       "credentials": {
         "httpHeaderAuth": {
@@ -284,11 +270,11 @@
       "parameters": {
         "method": "POST",
         "url": "https://api.resend.com/emails",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "httpHeaderAuth",
         "sendBody": true,
         "specifyBody": "json",
         "jsonBody": "={\"from\":\"cpe@guidingdiversity.com\",\"reply_to\":\"guidingdiversity@gmail.com\",\"to\":\"{{ $('Fetch User').item.json.data.email }}\",\"subject\":\"Congratulations! Your Certificate is ready\",\"html\":\"<p>Dear {{ $('Fetch User').item.json.data.first_name }},</p><p>Congratulations on passing the course <strong>{{ $('Fetch Course').item.json.data.title }}</strong>!</p><p>Please find your certificate attached to this email.</p><p>Best regards,<br/>Guiding Diversity CPE team</p>\",\"attachments\":[{\"filename\":\"Certificate.pdf\",\"content\":\"{{ $('Export to PDF').item.binary.data.data }}\"}]}",
-        "authentication": "predefinedCredentialType",
-        "nodeCredentialType": "httpHeaderAuth",
         "options": {}
       },
       "id": "send-email-id",
@@ -296,25 +282,34 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.1,
       "position": [
-        1900,
-        180
-      ]
+        1904,
+        192
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "oJp1K98DfgudDjtl",
+          "name": "Header Auth account 3"
+        }
+      }
     },
     {
       "parameters": {
-        "resource": "file",
-        "operation": "delete",
-        "fileId": "={{ $('Copy Template').item.json.id }}",
+        "operation": "deleteFile",
+        "fileId": {
+          "__rl": true,
+          "value": "={{ $('Copy Template').first().json.id }}",
+          "mode": "id"
+        },
         "options": {}
       },
-      "id": "delete-temp-doc-id",
-      "name": "Delete Temp Doc",
       "type": "n8n-nodes-base.googleDrive",
       "typeVersion": 3,
       "position": [
-        2080,
-        180
+        2112,
+        192
       ],
+      "id": "a4c63303-2ce0-4a2b-9d96-9db2823c2eba",
+      "name": "Delete a file",
       "credentials": {
         "googleDriveOAuth2Api": {
           "id": "WmdiNZNt6QPR2Q7g",
@@ -438,7 +433,7 @@
       "main": [
         [
           {
-            "node": "Delete Temp Doc",
+            "node": "Delete a file",
             "type": "main",
             "index": 0
           }
