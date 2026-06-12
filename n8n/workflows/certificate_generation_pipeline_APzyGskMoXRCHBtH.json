@@ -13,7 +13,7 @@
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 1,
       "position": [
-        200,
+        100,
         240
       ]
     },
@@ -37,7 +37,7 @@
       "type": "n8n-nodes-base.if",
       "typeVersion": 1,
       "position": [
-        400,
+        280,
         240
       ]
     },
@@ -53,7 +53,7 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.1,
       "position": [
-        600,
+        460,
         180
       ],
       "credentials": {
@@ -75,7 +75,7 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.1,
       "position": [
-        800,
+        640,
         180
       ],
       "credentials": {
@@ -97,7 +97,7 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.1,
       "position": [
-        1000,
+        820,
         180
       ],
       "credentials": {
@@ -109,43 +109,76 @@
     },
     {
       "parameters": {
-        "title": "=Certificate - {{ $('Fetch User').item.json.data.legal_name || ($('Fetch User').item.json.data.first_name + ' ' + $('Fetch User').item.json.data.last_name) }}",
-        "templateDocumentId": "1Pxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
-        "values": {
-          "values": [
-            {
-              "name": "legal_name",
-              "value": "={{ $('Fetch User').item.json.data.legal_name || ($('Fetch User').item.json.data.first_name + ' ' + $('Fetch User').item.json.data.last_name) }}"
-            },
-            {
-              "name": "tea_id",
-              "value": "={{ $('Fetch User').item.json.data.tea_id || 'N/A' }}"
-            },
-            {
-              "name": "course_title",
-              "value": "={{ $('Fetch Course').item.json.data.title }}"
-            },
-            {
-              "name": "issued_date",
-              "value": "={{ new Date().toLocaleDateString() }}"
-            }
-          ]
+        "resource": "file",
+        "operation": "copy",
+        "fileId": "1Pxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+        "name": "=Certificate - {{ $('Fetch User').item.json.data.legal_name || ($('Fetch User').item.json.data.first_name + ' ' + $('Fetch User').item.json.data.last_name) }}",
+        "options": {}
+      },
+      "id": "copy-template-id",
+      "name": "Copy Template",
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        1000,
+        180
+      ],
+      "credentials": {
+        "googleDriveApi": {
+          "id": "google-drive-account",
+          "name": "Google Account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "document",
+        "documentId": "={{ $('Copy Template').item.json.id }}",
+        "operation": "update",
+        "actions": {
+          "textToReplace": {
+            "values": [
+              {
+                "find": "{{legal_name}}",
+                "replace": "={{ $('Fetch User').item.json.data.legal_name || ($('Fetch User').item.json.data.first_name + ' ' + $('Fetch User').item.json.data.last_name) }}"
+              },
+              {
+                "find": "{{course_title}}",
+                "replace": "={{ $('Fetch Course').item.json.data.title }}"
+              },
+              {
+                "find": "{{tea_id}}",
+                "replace": "={{ $('Fetch User').item.json.data.tea_id || 'N/A' }}"
+              },
+              {
+                "find": "{{issued_date}}",
+                "replace": "={{ new Date().toLocaleDateString() }}"
+              }
+            ]
+          }
         },
         "options": {}
       },
-      "id": "create-gdoc-id",
+      "id": "update-gdoc-id",
       "name": "Generate Certificate Doc",
       "type": "n8n-nodes-base.googleDocs",
       "typeVersion": 2,
       "position": [
-        1200,
+        1180,
         180
-      ]
+      ],
+      "credentials": {
+        "googleDocsApi": {
+          "id": "google-docs-account",
+          "name": "Google Account"
+        }
+      }
     },
     {
       "parameters": {
+        "resource": "file",
         "operation": "download",
-        "fileId": "={{ $json.documentId }}",
+        "fileId": "={{ $('Copy Template').item.json.id }}",
         "outputFormat": "pdf",
         "options": {}
       },
@@ -154,9 +187,15 @@
       "type": "n8n-nodes-base.googleDrive",
       "typeVersion": 3,
       "position": [
-        1400,
+        1360,
         180
-      ]
+      ],
+      "credentials": {
+        "googleDriveApi": {
+          "id": "google-drive-account",
+          "name": "Google Account"
+        }
+      }
     },
     {
       "parameters": {
@@ -190,7 +229,7 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.1,
       "position": [
-        1600,
+        1540,
         180
       ],
       "credentials": {
@@ -216,7 +255,7 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.1,
       "position": [
-        1800,
+        1720,
         180
       ],
       "credentials": {
@@ -240,14 +279,15 @@
       "type": "n8n-nodes-base.emailSend",
       "typeVersion": 1,
       "position": [
-        2000,
+        1900,
         180
       ]
     },
     {
       "parameters": {
+        "resource": "file",
         "operation": "delete",
-        "fileId": "={{ $('Generate Certificate Doc').item.json.documentId }}",
+        "fileId": "={{ $('Copy Template').item.json.id }}",
         "options": {}
       },
       "id": "delete-temp-doc-id",
@@ -255,9 +295,15 @@
       "type": "n8n-nodes-base.googleDrive",
       "typeVersion": 3,
       "position": [
-        2200,
+        2080,
         180
-      ]
+      ],
+      "credentials": {
+        "googleDriveApi": {
+          "id": "google-drive-account",
+          "name": "Google Account"
+        }
+      }
     }
   ],
   "connections": {
@@ -306,6 +352,17 @@
       ]
     },
     "Fetch Course": {
+      "main": [
+        [
+          {
+            "node": "Copy Template",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Copy Template": {
       "main": [
         [
           {
