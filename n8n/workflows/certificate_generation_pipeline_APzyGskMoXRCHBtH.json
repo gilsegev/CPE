@@ -1,5 +1,7 @@
 {
+  "id": "APzyGskMoXRCHBtH",
   "name": "Certificate Generation Pipeline",
+  "active": false,
   "nodes": [
     {
       "parameters": {
@@ -15,7 +17,8 @@
       "position": [
         100,
         240
-      ]
+      ],
+      "webhookId": "4744f850-7598-438b-93bd-f2d8329ab0cd"
     },
     {
       "parameters": {
@@ -59,7 +62,7 @@
       "credentials": {
         "httpHeaderAuth": {
           "id": "pykovaGnwSaykDqr",
-          "name": "Directus Admin Token"
+          "name": "Header Auth account"
         }
       }
     },
@@ -81,7 +84,7 @@
       "credentials": {
         "httpHeaderAuth": {
           "id": "pykovaGnwSaykDqr",
-          "name": "Directus Admin Token"
+          "name": "Header Auth account"
         }
       }
     },
@@ -103,7 +106,7 @@
       "credentials": {
         "httpHeaderAuth": {
           "id": "pykovaGnwSaykDqr",
-          "name": "Directus Admin Token"
+          "name": "Header Auth account"
         }
       }
     },
@@ -126,7 +129,7 @@
       "credentials": {
         "googleDriveOAuth2Api": {
           "id": "WmdiNZNt6QPR2Q7g",
-          "name": "Google Account"
+          "name": "Google Drive account"
         }
       }
     },
@@ -180,7 +183,7 @@
       "credentials": {
         "googleDocsOAuth2Api": {
           "id": "Jol2cofNtQnQPW20",
-          "name": "Google Account"
+          "name": "Google Docs account"
         }
       }
     },
@@ -208,7 +211,7 @@
       "credentials": {
         "googleDriveOAuth2Api": {
           "id": "WmdiNZNt6QPR2Q7g",
-          "name": "Google Account"
+          "name": "Google Drive account"
         }
       }
     },
@@ -247,7 +250,7 @@
       "credentials": {
         "httpHeaderAuth": {
           "id": "pykovaGnwSaykDqr",
-          "name": "Directus Admin Token"
+          "name": "Header Auth account"
         }
       }
     },
@@ -273,7 +276,7 @@
       "credentials": {
         "httpHeaderAuth": {
           "id": "pykovaGnwSaykDqr",
-          "name": "Directus Admin Token"
+          "name": "Header Auth account"
         }
       }
     },
@@ -295,13 +298,7 @@
       "position": [
         1900,
         180
-      ],
-      "credentials": {
-        "httpHeaderAuth": {
-          "id": "resend-api-token-id",
-          "name": "Resend API Token"
-        }
-      }
+      ]
     },
     {
       "parameters": {
@@ -321,7 +318,7 @@
       "credentials": {
         "googleDriveOAuth2Api": {
           "id": "WmdiNZNt6QPR2Q7g",
-          "name": "Google Account"
+          "name": "Google Drive account"
         }
       }
     }
@@ -452,9 +449,8 @@
   "settings": {
     "executionOrder": "v1"
   },
-  "active": false,
+  "staticData": null,
   "meta": {
     "templateCredsSetupCompleted": true
-  },
-  "id": "APzyGskMoXRCHBtH"
+  }
 }
