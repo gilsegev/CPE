@@ -432,18 +432,9 @@ export const QuizAssessment = ({
             <ArrowLeft className="h-4 w-4 mr-2" />
             Previous
           </Button>
-          {currentIndex < questions.length - 1 && isQuestionAnswered && (
-            <Button
-              onClick={onNext}
-              className="w-full sm:w-auto px-4 py-5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white"
-            >
-              Next
-              <ArrowRight className="h-4 w-4 ml-2" />
-            </Button>
-          )}
         </div>
 
-        {/* Action Button: Submit Answer / Complete Quiz */}
+        {/* Action Button: Submit Answer / Complete Quiz / Next Question */}
         {!isQuestionAnswered ? (
           <Button
             disabled={selectedOption === null || isSubmitting}
@@ -453,27 +444,38 @@ export const QuizAssessment = ({
             Submit Answer
           </Button>
         ) : (
-          currentIndex === questions.length - 1 && (
-            <div className="flex gap-2 w-full sm:w-auto">
-              {score !== null && (
-                <Button
-                  onClick={() => setIsCompleted(true)}
-                  className="w-full sm:w-auto py-5 px-6 rounded-xl bg-slate-900 hover:bg-slate-800 text-white"
-                >
-                  View Results
-                </Button>
-              )}
-              {score === null && allQuestionsAnswered && (
-                <Button
-                  disabled={isSubmitting}
-                  onClick={onSubmitQuiz}
-                  className="w-full sm:w-auto py-5 px-6 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white shadow-md shadow-emerald-600/10"
-                >
-                  Submit Quiz
-                </Button>
-              )}
-            </div>
-          )
+          <>
+            {currentIndex < questions.length - 1 && (
+              <Button
+                onClick={onNext}
+                className="w-full sm:w-auto px-4 py-5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white"
+              >
+                Next
+                <ArrowRight className="h-4 w-4 ml-2" />
+              </Button>
+            )}
+            {currentIndex === questions.length - 1 && (
+              <div className="flex gap-2 w-full sm:w-auto">
+                {score !== null && (
+                  <Button
+                    onClick={() => setIsCompleted(true)}
+                    className="w-full sm:w-auto py-5 px-6 rounded-xl bg-slate-900 hover:bg-slate-800 text-white"
+                  >
+                    View Results
+                  </Button>
+                )}
+                {score === null && allQuestionsAnswered && (
+                  <Button
+                    disabled={isSubmitting}
+                    onClick={onSubmitQuiz}
+                    className="w-full sm:w-auto py-5 px-6 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white shadow-md shadow-emerald-600/10"
+                  >
+                    Submit Quiz
+                  </Button>
+                )}
+              </div>
+            )}
+          </>
         )}
       </div>
     </div>
