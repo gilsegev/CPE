@@ -268,13 +268,26 @@
     },
     {
       "parameters": {
+        "jsCode": "const user = $('Fetch User').item.json.data;\nconst course = $('Fetch Course').item.json.data;\nconst pdfBinary = $('Export to PDF').item.binary.data;\n\nconst base64Content = pdfBinary.data;\n\nconst jsonBody = {\n  from: \"Guiding Diversity <cpe@guidingdiversity.com>\",\n  reply_to: \"guidingdiversity@gmail.com\",\n  to: user.email,\n  subject: \"Congratulations! Your Certificate is ready\",\n  html: `<p>Dear ${user.first_name},</p><p>Congratulations on passing the course <strong>${course.title}</strong>!</p><p>Please find your certificate attached to this email.</p><p>Best regards,<br/>Guiding Diversity CPE team</p>`,\n  attachments: [\n    {\n      filename: `Certificate - ${user.legal_name || (user.first_name + ' ' + user.last_name)}.pdf`,\n      content: base64Content\n    }\n  ]\n};\n\nreturn { json: jsonBody };"
+      },
+      "id": "prepare-email-payload-id",
+      "name": "Prepare Email Payload",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1904,
+        192
+      ]
+    },
+    {
+      "parameters": {
         "method": "POST",
         "url": "https://api.resend.com/emails",
         "authentication": "predefinedCredentialType",
         "nodeCredentialType": "httpHeaderAuth",
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={\"from\":\"cpe@guidingdiversity.com\",\"reply_to\":\"guidingdiversity@gmail.com\",\"to\":\"{{ $('Fetch User').item.json.data.email }}\",\"subject\":\"Congratulations! Your Certificate is ready\",\"html\":\"<p>Dear {{ $('Fetch User').item.json.data.first_name }},</p><p>Congratulations on passing the course <strong>{{ $('Fetch Course').item.json.data.title }}</strong>!</p><p>Please find your certificate attached to this email.</p><p>Best regards,<br/>Guiding Diversity CPE team</p>\",\"attachments\":[{\"filename\":\"Certificate.pdf\",\"content\":\"{{ $('Export to PDF').item.binary.data.data }}\"}]}",
+        "jsonBody": "={{ $json }}",
         "options": {}
       },
       "id": "send-email-id",
@@ -282,7 +295,7 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.1,
       "position": [
-        1904,
+        2080,
         192
       ],
       "credentials": {
@@ -305,7 +318,7 @@
       "type": "n8n-nodes-base.googleDrive",
       "typeVersion": 3,
       "position": [
-        2112,
+        2260,
         192
       ],
       "id": "a4c63303-2ce0-4a2b-9d96-9db2823c2eba",
@@ -422,6 +435,17 @@
       "main": [
         [
           {
+            "node": "Prepare Email Payload",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Email Payload": {
+      "main": [
+        [
+          {
             "node": "Send Certificate Email",
             "type": "main",
             "index": 0
@@ -442,7 +466,8 @@
     }
   },
   "settings": {
-    "executionOrder": "v1"
+    "executionOrder": "v1",
+    "binaryMode": "separate"
   },
   "staticData": null,
   "meta": {
