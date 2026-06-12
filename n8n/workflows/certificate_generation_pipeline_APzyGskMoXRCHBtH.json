@@ -135,27 +135,37 @@
         "resource": "document",
         "documentId": "={{ $('Copy Template').item.json.id }}",
         "operation": "update",
-        "actions": {
-          "textToReplace": {
-            "values": [
-              {
-                "find": "{{legal_name}}",
-                "replace": "={{ $('Fetch User').item.json.data.legal_name || ($('Fetch User').item.json.data.first_name + ' ' + $('Fetch User').item.json.data.last_name) }}"
-              },
-              {
-                "find": "{{course_title}}",
-                "replace": "={{ $('Fetch Course').item.json.data.title }}"
-              },
-              {
-                "find": "{{tea_id}}",
-                "replace": "={{ $('Fetch User').item.json.data.tea_id || 'N/A' }}"
-              },
-              {
-                "find": "{{issued_date}}",
-                "replace": "={{ new Date().toLocaleDateString() }}"
-              }
-            ]
-          }
+        "actionsUi": {
+          "actionFields": [
+            {
+              "object": "text",
+              "action": "replaceAll",
+              "text": "{{legal_name}}",
+              "replaceText": "={{ $('Fetch User').item.json.data.legal_name || ($('Fetch User').item.json.data.first_name + ' ' + $('Fetch User').item.json.data.last_name) }}",
+              "matchCase": false
+            },
+            {
+              "object": "text",
+              "action": "replaceAll",
+              "text": "{{course_title}}",
+              "replaceText": "={{ $('Fetch Course').item.json.data.title }}",
+              "matchCase": false
+            },
+            {
+              "object": "text",
+              "action": "replaceAll",
+              "text": "{{tea_id}}",
+              "replaceText": "={{ $('Fetch User').item.json.data.tea_id || 'N/A' }}",
+              "matchCase": false
+            },
+            {
+              "object": "text",
+              "action": "replaceAll",
+              "text": "{{issued_date}}",
+              "replaceText": "={{ new Date().toLocaleDateString() }}",
+              "matchCase": false
+            }
+          ]
         },
         "options": {}
       },
