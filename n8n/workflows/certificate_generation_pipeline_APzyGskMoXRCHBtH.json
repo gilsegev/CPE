@@ -124,7 +124,7 @@
         180
       ],
       "credentials": {
-        "googleDriveApi": {
+        "googleDriveOAuth2Api": {
           "id": "UG34LI4eQ9MMhvnu",
           "name": "Google Account"
         }
@@ -133,7 +133,7 @@
     {
       "parameters": {
         "resource": "document",
-        "documentId": "={{ $('Copy Template').item.json.id }}",
+        "documentURL": "={{ $('Copy Template').item.json.id }}",
         "operation": "update",
         "actionsUi": {
           "actionFields": [
@@ -178,7 +178,7 @@
         180
       ],
       "credentials": {
-        "googleDocsApi": {
+        "googleDocsOAuth2Api": {
           "id": "Jol2cofNtQnQPW20",
           "name": "Google Account"
         }
@@ -201,7 +201,7 @@
         180
       ],
       "credentials": {
-        "googleDriveApi": {
+        "googleDriveOAuth2Api": {
           "id": "UG34LI4eQ9MMhvnu",
           "name": "Google Account"
         }
@@ -309,7 +309,7 @@
         180
       ],
       "credentials": {
-        "googleDriveApi": {
+        "googleDriveOAuth2Api": {
           "id": "UG34LI4eQ9MMhvnu",
           "name": "Google Account"
         }
