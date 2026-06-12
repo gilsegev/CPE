@@ -279,21 +279,29 @@
     },
     {
       "parameters": {
-        "fromEmail": "cpe@guidingdiversity.com",
-        "toEmail": "={{ $('Fetch User').item.json.data.email }}",
-        "subject": "=Congratulations! Your Certificate is ready",
-        "html": "=<p>Dear {{ $('Fetch User').item.json.data.first_name }},</p><p>Congratulations on passing the course <strong>{{ $('Fetch Course').item.json.data.title }}</strong>!</p><p>Please find your certificate attached to this email.</p><p>Best regards,<br/>Guiding Diversity CPE team</p>",
-        "attachments": "data",
+        "method": "POST",
+        "url": "https://api.resend.com/emails",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\"from\":\"onboarding@resend.dev\",\"to\":\"{{ $('Fetch User').item.json.data.email }}\",\"subject\":\"Congratulations! Your Certificate is ready\",\"html\":\"<p>Dear {{ $('Fetch User').item.json.data.first_name }},</p><p>Congratulations on passing the course <strong>{{ $('Fetch Course').item.json.data.title }}</strong>!</p><p>Please find your certificate attached to this email.</p><p>Best regards,<br/>Guiding Diversity CPE team</p>\",\"attachments\":[{\"filename\":\"Certificate.pdf\",\"content\":\"{{ $('Export to PDF').item.binary.data.data }}\"}]}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "httpHeaderAuth",
         "options": {}
       },
       "id": "send-email-id",
       "name": "Send Certificate Email",
-      "type": "n8n-nodes-base.emailSend",
-      "typeVersion": 1,
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
       "position": [
         1900,
         180
-      ]
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "resend-api-token-id",
+          "name": "Resend API Token"
+        }
+      }
     },
     {
       "parameters": {
