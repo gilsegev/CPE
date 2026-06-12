@@ -112,7 +112,7 @@
         "resource": "file",
         "operation": "copy",
         "fileId": "1F8S_-gBt6KrnV_CCj-QTk5RdFphpYIlWyJNPfOtiamU",
-        "name": "=Certificate - {{ $('Fetch User').item.json.data.legal_name || ($('Fetch User').item.json.data.first_name + ' ' + $('Fetch User').item.json.data.last_name) }}",
+        "name": "=Certificate - {{ ($('Fetch User').item.json.data.legal_name && $('Fetch User').item.json.data.legal_name !== 'null' && $('Fetch User').item.json.data.legal_name.trim() !== '') ? $('Fetch User').item.json.data.legal_name : (($('Fetch User').item.json.data.first_name || '') + ' ' + ($('Fetch User').item.json.data.last_name || '')).trim() }}",
         "options": {}
       },
       "id": "copy-template-id",
@@ -141,7 +141,7 @@
               "object": "text",
               "action": "replaceAll",
               "text": "{{legal_name}}",
-              "replaceText": "={{ $('Fetch User').item.json.data.legal_name || ($('Fetch User').item.json.data.first_name + ' ' + $('Fetch User').item.json.data.last_name) }}",
+              "replaceText": "={{ ($('Fetch User').item.json.data.legal_name && $('Fetch User').item.json.data.legal_name !== 'null' && $('Fetch User').item.json.data.legal_name.trim() !== '') ? $('Fetch User').item.json.data.legal_name : (($('Fetch User').item.json.data.first_name || '') + ' ' + ($('Fetch User').item.json.data.last_name || '')).trim() }}",
               "matchCase": false
             },
             {
@@ -214,19 +214,16 @@
         "sendBody": true,
         "contentType": "multipart-form-data",
         "bodyFormat": "form-data",
-        "parameters": {
-          "parameter": [
+        "bodyParameters": {
+          "parameters": [
             {
               "name": "title",
-              "value": "=Certificate - {{ $('Fetch User').item.json.data.legal_name || ($('Fetch User').item.json.data.first_name + ' ' + $('Fetch User').item.json.data.last_name) }}"
-            }
-          ]
-        },
-        "fileParameters": {
-          "parameter": [
+              "value": "=Certificate - {{ ($('Fetch User').item.json.data.legal_name && $('Fetch User').item.json.data.legal_name !== 'null' && $('Fetch User').item.json.data.legal_name.trim() !== '') ? $('Fetch User').item.json.data.legal_name : (($('Fetch User').item.json.data.first_name || '') + ' ' + ($('Fetch User').item.json.data.last_name || '')).trim() }}"
+            },
             {
+              "parameterType": "formBinaryData",
               "name": "file",
-              "parameterName": "data"
+              "inputDataFieldName": "data"
             }
           ]
         },
