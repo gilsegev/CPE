@@ -283,7 +283,7 @@
         "url": "https://api.resend.com/emails",
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={\"from\":\"onboarding@resend.dev\",\"to\":\"{{ $('Fetch User').item.json.data.email }}\",\"subject\":\"Congratulations! Your Certificate is ready\",\"html\":\"<p>Dear {{ $('Fetch User').item.json.data.first_name }},</p><p>Congratulations on passing the course <strong>{{ $('Fetch Course').item.json.data.title }}</strong>!</p><p>Please find your certificate attached to this email.</p><p>Best regards,<br/>Guiding Diversity CPE team</p>\",\"attachments\":[{\"filename\":\"Certificate.pdf\",\"content\":\"{{ $('Export to PDF').item.binary.data.data }}\"}]}",
+        "jsonBody": "={\"from\":\"cpe@guidingdiversity.com\",\"reply_to\":\"guidingdiversity@gmail.com\",\"to\":\"{{ $('Fetch User').item.json.data.email }}\",\"subject\":\"Congratulations! Your Certificate is ready\",\"html\":\"<p>Dear {{ $('Fetch User').item.json.data.first_name }},</p><p>Congratulations on passing the course <strong>{{ $('Fetch Course').item.json.data.title }}</strong>!</p><p>Please find your certificate attached to this email.</p><p>Best regards,<br/>Guiding Diversity CPE team</p>\",\"attachments\":[{\"filename\":\"Certificate.pdf\",\"content\":\"{{ $('Export to PDF').item.binary.data.data }}\"}]}",
         "authentication": "predefinedCredentialType",
         "nodeCredentialType": "httpHeaderAuth",
         "options": {}
