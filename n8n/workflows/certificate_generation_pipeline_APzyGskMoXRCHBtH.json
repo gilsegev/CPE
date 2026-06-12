@@ -189,8 +189,13 @@
         "resource": "file",
         "operation": "download",
         "fileId": "={{ $('Copy Template').item.json.id }}",
-        "outputFormat": "pdf",
-        "options": {}
+        "options": {
+          "googleFileConversion": {
+            "conversion": {
+              "docsToFormat": "application/pdf"
+            }
+          }
+        }
       },
       "id": "download-pdf-id",
       "name": "Export to PDF",
