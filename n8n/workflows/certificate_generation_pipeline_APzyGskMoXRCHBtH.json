@@ -22,11 +22,11 @@
         "conditions": {
           "string": [
             {
-              "value1": "={{ $json.payload?.status }}",
+              "value1": "={{ $json.body.payload?.status }}",
               "value2": "Approved"
             },
             {
-              "value1": "={{ $json.collection }}",
+              "value1": "={{ $json.body.collection }}",
               "value2": "Submissions"
             }
           ]
@@ -43,7 +43,7 @@
     },
     {
       "parameters": {
-        "url": "=https://directus-production-69c0.up.railway.app/items/Submissions/{{ $json.keys[0] }}",
+        "url": "=https://directus-production-69c0.up.railway.app/items/Submissions/{{ $json.body.keys[0] }}",
         "authentication": "predefinedCredentialType",
         "nodeCredentialType": "httpHeaderAuth",
         "options": {}
