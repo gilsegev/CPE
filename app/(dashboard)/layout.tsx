@@ -1,11 +1,19 @@
+import { redirect } from "next/navigation";
+import { getCurrentUser } from "@/lib/auth";
 import { Navbar } from "./_components/navbar";
 import { Sidebar } from "./_components/sidebar";
 
-const DashboardLayout = ({
+const DashboardLayout = async ({
   children
 }: {
   children: React.ReactNode;
 }) => {
+  const user = await getCurrentUser();
+
+  if (user && (!user.legal_name || user.legal_name.trim() === "")) {
+    return redirect("/confirm-profile");
+  }
+
   return ( 
     <div className="h-full">
       <div className="h-[80px] md:pl-56 fixed inset-y-0 w-full z-50">

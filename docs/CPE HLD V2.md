@@ -89,11 +89,14 @@ This explicit schema replaces the default Prisma models from the clone, mapping 
    * Integrate with email service - send highly detailed and itemized invoice/receipt emails for payments.  
    * Build the Frontend Quiz & Essay submission UI.  
    * Implement the submission logic and Directus storage.  
-5. **Phase 5: Automation Pipeline**  
+5. **Phase 5: Google Registration, Account Deletion & Automation Pipeline**  
+   * Implement server-side Google OAuth authentication and auto-registration for Students.
+   * Add `/confirm-profile` gating to enforce official Legal Name confirmation.
+   * Implement destructive "Delete user" cascading DB cleanup next to "Clean user".
    * Deploy n8n.  
    * Design the Google Doc Certificate template.  
    * Build the Webhook \-> n8n \-> Google Doc \-> PDF \-> Email flow.
-   * Remove "Clean user" button 
+   * Remove "Clean user" button (in production environment).
 6. **Phase 6: Payments**
    * Integrate Stripe Checkout and setup the webhook listener in Directus.  
 
@@ -213,7 +216,10 @@ A rigorous, step-by-step verification plan is required to validate Phase 4 witho
     - Directus check: verify `UserProgress` has a completed record for the Essay module (`is_completed: true`).
     - The course sidebar progress shows 100% completion (if all videos, quiz, and essay are marked completed).
 
-### **Phase 5 Exit Gate: Automation Pipeline**
+### **Phase 5 Exit Gate: Google Registration, Account Deletion & Automation Pipeline**
+* **Google OAuth Registration:** Custom Google login flow successfully registers new students, bypasses Directus OIDC cookie limitations via server-to-server exchange, and logs users in.
+* **Profile Gating:** Users with missing `legal_name` are forced to `/confirm-profile` to input legal names and select a compliance checkbox. NEXT_REDIRECT exceptions are handled correctly.
+* **Destructive Deletion:** Destructive "Delete user" button triggers `POST /api/user/delete` with confirmation modal. Relational records in `Purchases`, `UserProgress`, `Submissions`, `Certificates`, and `QuizProgress` are cascadingly deleted before the user's `directus_users` record is removed and cookies are cleared.
 * **Webhook Trigger:** Setting status to `Approved` in Directus fires a webhook to n8n.
 * **Doc Compilation:** n8n compiles PDF certificate, sends email, and writes PDF URL to Directus `Certificates`.
 

@@ -18,6 +18,10 @@ const CourseLayout = async ({
   const user = await getCurrentUser();
   const userId = user?.id;
 
+  if (user && (!user.legal_name || user.legal_name.trim() === "")) {
+    return redirect("/confirm-profile");
+  }
+
   const directusUrl = process.env.NEXT_PUBLIC_DIRECTUS_URL || 'https://directus-production-69c0.up.railway.app';
 
   // 1. Fetch course details from Directus

@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { isTeacher } from "@/lib/teacher";
 import { logoutAction } from "@/actions/logout";
 import { SearchInput } from "./search-input";
+import { ConfirmModal } from "@/components/modals/confirm-modal";
 
 interface NavbarRoutesProps {
   userId?: string | null;
@@ -21,6 +22,7 @@ export const NavbarRoutes = ({ userId, userName }: NavbarRoutesProps) => {
   const pathname = usePathname();
   const router = useRouter();
   const [isCleaning, setIsCleaning] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const isTeacherPage = pathname?.startsWith("/teacher");
   const isCoursePage = pathname?.includes("/courses");
@@ -36,6 +38,19 @@ export const NavbarRoutes = ({ userId, userName }: NavbarRoutesProps) => {
       toast.error("Failed to clean user");
     } finally {
       setIsCleaning(false);
+    }
+  };
+
+  const onDeleteUser = async () => {
+    try {
+      setIsDeleting(true);
+      await axios.post("/api/user/delete");
+      toast.success("User account and all data deleted");
+      window.location.assign("/sign-up");
+    } catch (error) {
+      toast.error("Failed to delete user");
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -68,12 +83,22 @@ export const NavbarRoutes = ({ userId, userName }: NavbarRoutesProps) => {
               size="sm"
               variant="outline"
               onClick={onCleanUser}
-              disabled={isCleaning}
+              disabled={isCleaning || isDeleting}
               className="text-red-600 hover:text-red-700 border-red-200 hover:bg-red-50"
             >
               <Trash2 className="h-4 w-4 mr-2" />
               Clean user
             </Button>
+            <ConfirmModal onConfirm={onDeleteUser}>
+              <Button
+                size="sm"
+                variant="destructive"
+                disabled={isCleaning || isDeleting}
+              >
+                <Trash2 className="h-4 w-4 mr-2" />
+                Delete user
+              </Button>
+            </ConfirmModal>
             <span className="text-sm font-medium text-slate-600 hidden md:inline-block">
               Hello, <span className="text-slate-800 font-semibold">{userName}</span>
             </span>
