@@ -97,7 +97,11 @@ This explicit schema replaces the default Prisma models from the clone, mapping 
    * Design the Google Doc Certificate template.  
    * Build the Webhook \-> n8n \-> Google Doc \-> PDF \-> Email flow.
    * Remove "Clean user" button (in production environment).
-6. **Phase 6: Payments**
+6. **Phase 6: matching guidingdiversity.com styling**
+    Use the same UI styling and components as guidingdiversity.com
+    * Replicate the color palette, typography (font sizes, weights, line heights), spacing system, button styles, and card designs from guidingdiversity.com.
+    * Update all Next.js components to use the new custom styles instead of default Tailwind classes.
+7. **Phase 7: Payments**
    * Integrate Stripe Checkout and setup the webhook listener in Directus.  
 
 ## **6. Phase Verification & Exit Gates**
