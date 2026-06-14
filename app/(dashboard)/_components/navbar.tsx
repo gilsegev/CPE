@@ -18,42 +18,34 @@ export const Navbar = async () => {
       </div>
 
       {/* Middle: Squarespace Navigation Links (hidden on mobile/tablet) */}
-      <div className="hidden lg:flex items-center gap-x-8 text-sm font-medium">
+      <div className="hidden lg:flex items-center gap-x-8 text-sm">
         <a 
           href="https://www.guidingdiversity.com/about" 
-          target="_blank" 
-          rel="noopener noreferrer" 
-          className="text-[#e2e7f2] hover:text-white transition font-sans uppercase tracking-wider text-xs font-semibold"
+          className="text-[#e2e7f2] hover:text-white transition font-medium text-[15px]"
         >
           About
         </a>
         <a 
           href="https://www.guidingdiversity.com/services" 
-          target="_blank" 
-          rel="noopener noreferrer" 
-          className="text-[#e2e7f2] hover:text-white transition font-sans uppercase tracking-wider text-xs font-semibold"
+          className="text-[#e2e7f2] hover:text-white transition font-medium text-[15px]"
         >
           Services
         </a>
         <a 
           href="https://www.guidingdiversity.com/blog" 
-          target="_blank" 
-          rel="noopener noreferrer" 
-          className="text-[#e2e7f2] hover:text-white transition font-sans uppercase tracking-wider text-xs font-semibold"
+          className="text-[#e2e7f2] hover:text-white transition font-medium text-[15px]"
         >
           Blog
         </a>
         <a 
           href="https://www.guidingdiversity.com/contact" 
-          target="_blank" 
-          rel="noopener noreferrer" 
-          className="text-[#e2e7f2] hover:text-white transition font-sans uppercase tracking-wider text-xs font-semibold"
+          className="text-[#e2e7f2] hover:text-white transition font-medium text-[15px]"
         >
           Contact
         </a>
         <Link 
           href="/search" 
-          className="text-white border-b-2 border-sky-400 pb-1 font-sans uppercase tracking-wider text-xs font-bold"
+          className="text-white transition font-medium text-[15px]"
         >
           CPE Courses
         </Link>

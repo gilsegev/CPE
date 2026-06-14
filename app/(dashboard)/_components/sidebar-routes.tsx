@@ -56,8 +56,6 @@ export const SidebarRoutes = () => {
         </p>
         <a
           href="https://www.guidingdiversity.com/about"
-          target="_blank"
-          rel="noopener noreferrer"
           className="flex items-center gap-x-2 text-slate-500 text-sm font-[500] pl-6 py-3 transition-all hover:text-slate-700 hover:bg-slate-300/20"
         >
           <ExternalLink size={20} className="text-slate-400" />
@@ -65,8 +63,6 @@ export const SidebarRoutes = () => {
         </a>
         <a
           href="https://www.guidingdiversity.com/services"
-          target="_blank"
-          rel="noopener noreferrer"
           className="flex items-center gap-x-2 text-slate-500 text-sm font-[500] pl-6 py-3 transition-all hover:text-slate-700 hover:bg-slate-300/20"
         >
           <ExternalLink size={20} className="text-slate-400" />
@@ -74,8 +70,6 @@ export const SidebarRoutes = () => {
         </a>
         <a
           href="https://www.guidingdiversity.com/blog"
-          target="_blank"
-          rel="noopener noreferrer"
           className="flex items-center gap-x-2 text-slate-500 text-sm font-[500] pl-6 py-3 transition-all hover:text-slate-700 hover:bg-slate-300/20"
         >
           <ExternalLink size={20} className="text-slate-400" />
@@ -83,8 +77,6 @@ export const SidebarRoutes = () => {
         </a>
         <a
           href="https://www.guidingdiversity.com/contact"
-          target="_blank"
-          rel="noopener noreferrer"
           className="flex items-center gap-x-2 text-slate-500 text-sm font-[500] pl-6 py-3 transition-all hover:text-slate-700 hover:bg-slate-300/20"
         >
           <ExternalLink size={20} className="text-slate-400" />
