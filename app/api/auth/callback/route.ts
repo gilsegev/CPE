@@ -1,6 +1,6 @@
 import { cookies } from "next/headers";
 import { NextRequest, NextResponse } from "next/server";
-import { readUsers, createUser, updateUser, readRoles } from "@directus/sdk";
+import { readUsers, createUser, updateUser, readRoles, readRole } from "@directus/sdk";
 import { db, DirectusUser } from "@/lib/db";
 import { login } from "@/lib/auth";
 
@@ -92,6 +92,17 @@ export async function GET(request: NextRequest) {
     );
 
     let user = users[0] as unknown as DirectusUser;
+
+    // Check if the user is an Administrator to avoid wiping their password via Google OAuth login
+    if (user && (user as any).role) {
+      const role = await db.request(readRole((user as any).role));
+      if (role && role.name && role.name.toLowerCase() === "administrator") {
+        console.error(`[OAUTH_CALLBACK_ERROR] Administrator ${email} attempted to sign in via Google OAuth`);
+        return NextResponse.redirect(
+          new URL(`/sign-in?error=Google sign-in is not allowed for administrator accounts. Please sign in using your email and password.`, appUrl)
+        );
+      }
+    }
 
     // 4. If user doesn't exist, register them as a Student with empty legal_name
     if (!user) {
