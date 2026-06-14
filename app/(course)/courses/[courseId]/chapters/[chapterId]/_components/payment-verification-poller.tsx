@@ -1,37 +1,39 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
 import { Loader2, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
-export const PaymentVerificationPoller = () => {
-  const router = useRouter();
+interface PaymentVerificationPollerProps {
+  courseId: string;
+}
+
+export const PaymentVerificationPoller = ({ courseId }: PaymentVerificationPollerProps) => {
   const [attempts, setAttempts] = useState(0);
   const maxAttempts = 15; // 30 seconds total (15 * 2s)
   const [timedOut, setTimedOut] = useState(false);
 
   useEffect(() => {
-    if (timedOut) return;
+    const key = `payment_verify_attempts_${courseId}`;
+    const stored = sessionStorage.getItem(key);
+    const currentAttempts = stored ? parseInt(stored, 10) : 0;
+    setAttempts(currentAttempts);
 
-    const interval = setInterval(() => {
-      setAttempts((prev) => {
-        const next = prev + 1;
-        if (next >= maxAttempts) {
-          setTimedOut(true);
-          clearInterval(interval);
-          return prev;
-        }
-        router.refresh();
-        return next;
-      });
+    if (currentAttempts >= maxAttempts) {
+      setTimedOut(true);
+      return;
+    }
+
+    const timer = setTimeout(() => {
+      sessionStorage.setItem(key, (currentAttempts + 1).toString());
+      window.location.reload();
     }, 2000);
 
-    return () => clearInterval(interval);
-  }, [router, timedOut]);
+    return () => clearTimeout(timer);
+  }, [courseId]);
 
   const handleManualRefresh = () => {
-    router.refresh();
+    window.location.reload();
   };
 
   return (

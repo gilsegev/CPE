@@ -146,8 +146,8 @@ const ChapterIdPage = async ({
           label={purchase ? "This module is locked. Please complete all preceding modules first." : "You need to purchase this course to access this chapter."}
         />
       )}
-      {isLocked && searchParams.success === "1" && !purchase && (
-        <PaymentVerificationPoller />
+      {searchParams.success === "1" && !purchase && (
+        <PaymentVerificationPoller courseId={params.courseId} />
       )}
       <div className="flex flex-col max-w-5xl mx-auto pb-20">
         {isLocked && (chapter.type === "quiz" || chapter.type === "essay") ? (
