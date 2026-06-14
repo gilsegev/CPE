@@ -4,7 +4,7 @@ We have fully integrated the LMS template with your Directus backend, enabling t
 Custom B2C Authentication: A fully native /sign-up and /sign-in portal. The sign-up form explicitly collects Legal Name for Certificate (required) and TEA ID (optional) and registers users directly into your PostgreSQL database via Directus.
 Session Protection: A custom middleware checks and automatically refreshes user access tokens using secure HTTP-only cookies, protecting all course routes.
 Dynamic Data Loading: The /search (Browse) and /courses pages fetch published courses, modules (chapters), and student progress dynamically from Directus.
-Stripe Checkout & Webhooks: Next.js generates Stripe payment sessions and receives payment success webhooks, which automatically write active course Purchases records into Directus.
+Square Checkout & Webhooks: Next.js generates Square payment links and receives payment success webhooks, which automatically write active course Purchases records into Directus.
 Mux Video Player: Integrates the standard <MuxPlayer /> component for module video streaming.
 3. Deactivated Teacher Dashboard (Admin Module)
 In the original Antonio LMS template, course creators used teacher-facing pages inside Next.js to upload files and configure lessons. Because your platform is built on Directus, Directus is your Admin Panel out of the box! This saves you from having to build and maintain custom intake panels.

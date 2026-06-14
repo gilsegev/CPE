@@ -6,7 +6,7 @@ This document outlines the systematic architecture, data schema, and implementat
 
 The platform delivers compliant, certified training modules. The critical path for a user is:
 
-1. **Authentication & Purchase:** Register/login and purchase course access via Stripe.  
+1. **Authentication & Purchase:** Register/login and purchase course access via Square.  
 2. **Consumption:** Watch adaptive bitrate videos (via Mux).  
 3. **Assessment:** Complete a structured multiple-choice quiz and submit a text-based case study (essay).  
 4. **Evaluation:** Admin (Instructor) manually reviews the case study in the backend dashboard and marks it as Approved.  
@@ -20,7 +20,7 @@ The platform delivers compliant, certified training modules. The critical path f
 | **Backend API & CMS** | Directus | Headless CMS, Auth (JWT via Directus SDK), RBAC, REST/GraphQL API generation, and Admin Dashboard for course/user management. |
 | **Database** | PostgreSQL (Managed) | Relational storage for the core data schema. Managed via Supabase, Neon, or DigitalOcean. |
 | **Video Hosting** | Mux | Adaptive bitrate streaming, video hosting, and playback state tracking (pause/resume). Offloads media handling from the DB. |
-| **Payments** | Stripe | Secure checkout, payment intents, and automated tax receipts. |
+| **Payments** | Square | Secure checkout, payment links, and automated tax receipts. |
 | **Automation Pipeline** | n8n | Asynchronous orchestration for certificate generation and email triggers. |
 | **Transactional Email** | Resend / SendGrid | Delivery of welcome emails, password resets, and final certificates. |
 
@@ -33,7 +33,7 @@ This explicit schema replaces the default Prisma models from the clone, mapping 
 | **Users** (System) | id, email, password, first\_name, last\_name, tea\_provider\_number, role | Extended Directus Directus\_Users table. |
 | **Courses** | id, title, description, price, is\_published, thumbnail\_url | Parent container for training content. |
 | **Modules** | id, course\_id, title, order\_index, mux\_asset\_id, is\_free\_preview | Many-to-One with Courses. |
-| **Purchases** | id, user\_id, course\_id, stripe\_payment\_id, status | Junction table tracking access control. |
+| **Purchases** | id, user\_id, course\_id, stripe\_payment\_id (Square payment ID), status | Junction table tracking access control. |
 | **Quizzes** | id, module\_id, passing\_score | One-to-One with Modules. Custom build. |
 | **Questions** | id, quiz\_id, question\_text, options (JSON), correct\_answer\_index | Many-to-One with Quizzes. Options stored as JSON array. |
 | **Submissions** | id, user\_id, course\_id, quiz\_score, essay\_text, status (Pending, Approved, Rejected) | The master log for compliance and grading. |
@@ -45,13 +45,13 @@ This explicit schema replaces the default Prisma models from the clone, mapping 
 
 * **Action:** Remove Clerk Auth and Prisma ORM from the Next.js clone.  
 * **Implementation:** Integrate the `@directus/sdk` in Next.js. Authentication handles sessions via Directus JWTs. All Next.js data fetching (e.g., loading course lists) is executed via REST/GraphQL queries to the Directus endpoints using the authenticated user's token, ensuring Role-Based Access Control (RBAC) is respected.
-* **Public Guest Access:** To optimize B2C conversions, users can browse the course catalog (`/search`) and view course details/free previews (`/courses/[courseId]`) anonymously. The system queries public-published items directly from Directus without a session. Authentication is deferred and only enforced when the user attempts to enroll in a course (Stripe checkout) or track module progress.
+* **Public Guest Access:** To optimize B2C conversions, users can browse the course catalog (`/search`) and view course details/free previews (`/courses/[courseId]`) anonymously. The system queries public-published items directly from Directus without a session. Authentication is deferred and only enforced when the user attempts to enroll in a course (Square checkout) or track module progress.
 
-[not completed yet]### **4.2 Payment & Access Provisioning (Stripe)**
+### **4.2 Payment & Access Provisioning (Square)**
 
-* **Checkout:** Next.js requests a Stripe Checkout Session via a Directus custom endpoint or serverless function.  
-* **Webhook:** Upon successful payment, Stripe fires a webhook to Directus.  
-* **Provisioning:** Directus creates a record in the **Purchases** table, unlocking the course for the User ID.
+* **Checkout:** Next.js requests a Square Payment Link session via a custom route.  
+* **Webhook:** Upon successful payment, Square fires a webhook to Next.js (`/api/webhook`).  
+* **Provisioning:** Next.js creates a record in the **Purchases** table in Directus, unlocking the course for the User ID.
 
 ### **4.3 The Custom Assessment Engine**
 
@@ -102,7 +102,7 @@ This explicit schema replaces the default Prisma models from the clone, mapping 
     * Replicate the color palette, typography (font sizes, weights, line heights), spacing system, button styles, and card designs from guidingdiversity.com.
     * Update all Next.js components to use the new custom styles instead of default Tailwind classes.
 7. **Phase 7: Payments**
-   * Integrate Stripe Checkout and setup the webhook listener in Directus.  
+   * Integrate Square Checkout (Payment Links) and setup the webhook listener in Next.js.  
 
 ## **6. Phase Verification & Exit Gates**
 
@@ -114,7 +114,7 @@ This explicit schema replaces the default Prisma models from the clone, mapping 
 
 ### **Phase 3 Exit Gate: Video & Payments**
 
-* **Webhook Provisioning:** Stripe's success callback fires to `/api/webhook`, which uses the Directus SDK to provision an active course purchase.
+* **Webhook Provisioning:** Square's success callback fires to `/api/webhook`, which uses the Directus SDK to provision an active course purchase.
 * **Mux Video Playback:** Module video components retrieve and stream Mux playback IDs. Free previews play immediately; locked modules require active purchase validation.
 * **Video Seeking Restriction:** Video component intercepts seeking forward past the furthest watched point and snaps the playback position back to safeguard compliance.
 
@@ -227,5 +227,5 @@ A rigorous, step-by-step verification plan is required to validate Phase 4 witho
 * **Webhook Trigger:** Setting status to `Approved` in Directus fires a webhook to n8n.
 * **Doc Compilation:** n8n compiles PDF certificate, sends email, and writes PDF URL to Directus `Certificates`.
 
-### **Phase 6 Exit Gate: Payments**
-* **Checkout Redirect:** Triggering checkout dynamically creates a Stripe session and redirects the user to the secure payment page.
+### **Phase 7 Exit Gate: Payments**
+* **Checkout Redirect:** Triggering checkout dynamically creates a Square payment link and redirects the user to the secure Square checkout page.

@@ -10,7 +10,7 @@ This is a repository for Build an LMS Platform: Next.js 13,  React, Stripe, Mux,
 Key Features:
 
 - Browse & Filter Courses
-- Purchase Courses using Stripe
+- Purchase Courses using Square
 - Mark Chapters as Completed or Uncompleted
 - Progress Calculation of each Course
 - Student Dashboard
@@ -61,9 +61,11 @@ UPLOADTHING_APP_ID=
 MUX_TOKEN_ID=
 MUX_TOKEN_SECRET=
 
-STRIPE_API_KEY=
+SQUARE_ACCESS_TOKEN=
+SQUARE_ENVIRONMENT=sandbox
+SQUARE_WEBHOOK_SIGNATURE_KEY=
+SQUARE_LOCATION_ID=
 NEXT_PUBLIC_APP_URL=http://localhost:3000
-STRIPE_WEBHOOK_SECRET=
 
 NEXT_PUBLIC_TEACHER_ID=
 ```
