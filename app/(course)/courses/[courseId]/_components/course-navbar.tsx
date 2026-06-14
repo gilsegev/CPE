@@ -57,7 +57,7 @@ export const CourseNavbar = async ({
         </a>
         <Link 
           href="/search" 
-          className="text-white transition font-medium text-[15px]"
+          className="text-white border-b-2 border-sky-400 pb-1 transition font-medium text-[15px]"
         >
           CPE Courses
         </Link>
