@@ -79,16 +79,18 @@ export const NavbarRoutes = ({ userId, userName }: NavbarRoutesProps) => {
 
         {userId ? (
           <div className="flex items-center gap-x-4 border-l pl-4 border-slate-200">
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={onCleanUser}
-              disabled={isCleaning || isDeleting}
-              className="text-red-600 hover:text-red-700 border-red-200 hover:bg-red-50"
-            >
-              <Trash2 className="h-4 w-4 mr-2" />
-              Clean user
-            </Button>
+            {process.env.NODE_ENV !== "production" && (
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={onCleanUser}
+                disabled={isCleaning || isDeleting}
+                className="text-red-600 hover:text-red-700 border-red-200 hover:bg-red-50"
+              >
+                <Trash2 className="h-4 w-4 mr-2" />
+                Clean user
+              </Button>
+            )}
             <ConfirmModal onConfirm={onDeleteUser}>
               <Button
                 size="sm"

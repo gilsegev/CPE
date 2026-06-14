@@ -9,23 +9,23 @@ export async function GET(request: NextRequest) {
   
   const code = searchParams.get("code");
   const state = searchParams.get("state"); // Optional, for CSRF protection if needed
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
 
   if (!code) {
     console.error("[OAUTH_CALLBACK_ERROR] Missing authorization code from Google");
     return NextResponse.redirect(
-      new URL(`/sign-in?error=Google authentication failed. Please try again.`, request.url)
+      new URL(`/sign-in?error=Google authentication failed. Please try again.`, appUrl)
     );
   }
 
   const clientId = process.env.GOOGLE_CLIENT_ID;
   const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
   const redirectUri = `${appUrl}/api/auth/callback`;
 
   if (!clientId || !clientSecret) {
     console.error("[OAUTH_CALLBACK_ERROR] GOOGLE_CLIENT_ID or GOOGLE_CLIENT_SECRET is not set in environment");
     return NextResponse.redirect(
-      new URL(`/sign-in?error=Server configuration error. Please contact support.`, request.url)
+      new URL(`/sign-in?error=Server configuration error. Please contact support.`, appUrl)
     );
   }
 
@@ -149,18 +149,18 @@ export async function GET(request: NextRequest) {
     // 8. Gate profile confirmation
     // If legal_name is missing or empty, redirect to confirm-profile onboarding
     if (!user.legal_name || user.legal_name.trim() === "") {
-      const confirmUrl = new URL("/confirm-profile", request.url);
+      const confirmUrl = new URL("/confirm-profile", appUrl);
       confirmUrl.searchParams.set("redirectTo", redirectTo);
       return NextResponse.redirect(confirmUrl);
     }
 
     // Otherwise, redirect to original destination
-    return NextResponse.redirect(new URL(redirectTo, request.url));
+    return NextResponse.redirect(new URL(redirectTo, appUrl));
   } catch (error: any) {
     console.error("[OAUTH_CALLBACK_PROCESS_ERROR]", error);
     const msg = error.message || "Authentication failed. Please try again.";
     return NextResponse.redirect(
-      new URL(`/sign-in?error=${encodeURIComponent(msg)}`, request.url)
+      new URL(`/sign-in?error=${encodeURIComponent(msg)}`, appUrl)
     );
   }
 }
