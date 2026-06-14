@@ -54,14 +54,14 @@ export default function SignInPage({ searchParams }: SignInPageProps) {
   }
 
   return (
-    <div className="w-[400px] bg-white p-8 rounded-xl shadow-md border border-slate-100">
+    <div className="w-full max-w-[400px] bg-[#1a2333]/90 border border-[#2d3a5a] backdrop-blur-md p-8 rounded-2xl shadow-2xl">
       <div className="mb-6 text-center">
-        <h1 className="text-2xl font-bold text-slate-800">Welcome Back</h1>
-        <p className="text-sm text-slate-500 mt-1">Sign in to access your professional education</p>
+        <h1 className="text-2xl font-bold text-white font-serif">Welcome Back</h1>
+        <p className="text-sm text-slate-300 mt-1">Sign in to access your professional education</p>
       </div>
 
       {error && (
-        <div className="bg-red-50 text-red-600 text-sm p-3 rounded-lg border border-red-100 font-medium mb-4">
+        <div className="bg-red-950/40 text-red-200 text-sm p-3 rounded-xl border border-red-900/30 font-medium mb-4">
           {error}
         </div>
       )}
@@ -69,7 +69,7 @@ export default function SignInPage({ searchParams }: SignInPageProps) {
       <form action={handleGoogleLogin} className="w-full">
         <button
           type="submit"
-          className="w-full flex items-center justify-center gap-x-2 border border-slate-200 hover:bg-slate-50 text-slate-700 font-medium py-2 rounded-lg transition text-sm mb-4 cursor-pointer shadow-sm bg-white"
+          className="w-full flex items-center justify-center gap-x-2 border border-[#2d3a5a] hover:bg-[#25324b] text-white font-semibold py-2.5 rounded-xl transition text-sm mb-4 cursor-pointer shadow-sm bg-[#1e293b]"
         >
           <svg className="h-4 w-4" viewBox="0 0 24 24">
             <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
@@ -83,48 +83,48 @@ export default function SignInPage({ searchParams }: SignInPageProps) {
 
       <div className="relative mb-6">
         <div className="absolute inset-0 flex items-center">
-          <span className="w-full border-t border-slate-200" />
+          <span className="w-full border-t border-[#2d3a5a]" />
         </div>
         <div className="relative flex justify-center text-xs uppercase">
-          <span className="bg-white px-2 text-slate-500 font-medium">Or continue with email</span>
+          <span className="bg-[#1a2333] px-2 text-slate-400 font-medium">Or continue with email</span>
         </div>
       </div>
 
       <form action={handleSignIn} className="space-y-4">
 
         <div className="space-y-1">
-          <label className="text-sm font-semibold text-slate-700">Email Address</label>
+          <label className="text-xs font-semibold text-[#e2e7f2] uppercase tracking-wider">Email Address</label>
           <input
             name="email"
             type="email"
             placeholder="name@guidingdiversity.com"
             required
-            className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500 text-sm"
+            className="w-full px-3.5 py-2.5 bg-[#0e1524] border border-[#2d3a5a] text-white rounded-xl focus:outline-none focus:ring-2 focus:ring-sky-500 text-sm placeholder:text-slate-500 transition-all"
           />
         </div>
 
         <div className="space-y-1">
-          <label className="text-sm font-semibold text-slate-700">Password</label>
+          <label className="text-xs font-semibold text-[#e2e7f2] uppercase tracking-wider">Password</label>
           <input
             name="password"
             type="password"
             placeholder="••••••••"
             required
-            className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500 text-sm"
+            className="w-full px-3.5 py-2.5 bg-[#0e1524] border border-[#2d3a5a] text-white rounded-xl focus:outline-none focus:ring-2 focus:ring-sky-500 text-sm placeholder:text-slate-500 transition-all"
           />
         </div>
 
         <button
           type="submit"
-          className="w-full bg-slate-900 hover:bg-slate-800 text-white font-medium py-2 rounded-lg transition text-sm mt-2"
+          className="w-full bg-white hover:bg-slate-100 text-[#18223b] font-bold py-2.5 rounded-xl transition text-sm mt-2 shadow-md uppercase tracking-wider"
         >
           Sign In
         </button>
       </form>
 
-      <div className="mt-6 text-center text-sm text-slate-500">
+      <div className="mt-6 text-center text-sm text-slate-400">
         New to the platform?{" "}
-        <Link href="/sign-up" className="text-sky-600 hover:underline font-medium">
+        <Link href="/sign-up" className="text-sky-400 hover:text-sky-300 font-medium hover:underline">
           Create an account
         </Link>
       </div>
