@@ -95,10 +95,20 @@ export type CPESchema = {
   QuizProgress: QuizProgress[];
 };
 
-// Initialize server-side admin client
 const directusUrl = process.env.NEXT_PUBLIC_DIRECTUS_URL || 'https://directus-production-69c0.up.railway.app';
 const adminToken = process.env.DIRECTUS_ADMIN_TOKEN || 'Qurc2emXjz6L4zz9lLZ99gKWbjPng4MM';
 
-export const db = createDirectus<CPESchema>(directusUrl)
+const customFetch = (input: any, init?: any) => {
+  return fetch(input, {
+    ...init,
+    cache: "no-store",
+  });
+};
+
+export const db = createDirectus<CPESchema>(directusUrl, {
+  globals: {
+    fetch: customFetch,
+  },
+})
   .with(rest())
   .with(staticToken(adminToken));

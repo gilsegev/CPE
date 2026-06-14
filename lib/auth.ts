@@ -4,9 +4,20 @@ import { CPESchema, DirectusUser } from "./db";
 
 const directusUrl = process.env.NEXT_PUBLIC_DIRECTUS_URL || 'https://directus-production-69c0.up.railway.app';
 
+const customFetch = (input: any, init?: any) => {
+  return fetch(input, {
+    ...init,
+    cache: "no-store",
+  });
+};
+
 // Helper to create a clean guest client
 export function getGuestClient() {
-  return createDirectus<CPESchema>(directusUrl).with(rest());
+  return createDirectus<CPESchema>(directusUrl, {
+    globals: {
+      fetch: customFetch,
+    },
+  }).with(rest());
 }
 
 // Helper to get an authenticated client based on current session
@@ -14,7 +25,11 @@ export async function getSessionClient() {
   const token = await getValidAccessToken();
   if (!token) return null;
 
-  return createDirectus<CPESchema>(directusUrl)
+  return createDirectus<CPESchema>(directusUrl, {
+    globals: {
+      fetch: customFetch,
+    },
+  })
     .with(rest())
     .with(staticToken(token));
 }

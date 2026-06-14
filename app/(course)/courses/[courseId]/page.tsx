@@ -3,9 +3,11 @@ import { readItem, readItems } from "@directus/sdk";
 import { redirect } from "next/navigation";
 
 const CourseIdPage = async ({
-  params
+  params,
+  searchParams,
 }: {
   params: { courseId: string; }
+  searchParams: { success?: string };
 }) => {
   const course = await db.request(
     readItem("Courses", params.courseId, {
@@ -32,7 +34,8 @@ const CourseIdPage = async ({
     return redirect("/");
   }
 
-  return redirect(`/courses/${course.id}/chapters/${modules[0].id}`);
+  const queryString = searchParams.success === "1" ? "?success=1" : "";
+  return redirect(`/courses/${course.id}/chapters/${modules[0].id}${queryString}`);
 }
  
 export default CourseIdPage;

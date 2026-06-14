@@ -14,11 +14,14 @@ import { CourseEnrollButton } from "./_components/course-enroll-button";
 import { CourseProgressButton } from "./_components/course-progress-button";
 import { QuizAssessment } from "./_components/quiz-assessment";
 import { EssayAssessment } from "./_components/essay-assessment";
+import { PaymentVerificationPoller } from "./_components/payment-verification-poller";
 
 const ChapterIdPage = async ({
-  params
+  params,
+  searchParams,
 }: {
-  params: { courseId: string; chapterId: string }
+  params: { courseId: string; chapterId: string };
+  searchParams: { success?: string };
 }) => {
   const user = await getCurrentUser();
   const userId = user?.id;
@@ -142,6 +145,9 @@ const ChapterIdPage = async ({
           variant="warning"
           label={purchase ? "This module is locked. Please complete all preceding modules first." : "You need to purchase this course to access this chapter."}
         />
+      )}
+      {isLocked && searchParams.success === "1" && !purchase && (
+        <PaymentVerificationPoller />
       )}
       <div className="flex flex-col max-w-5xl mx-auto pb-20">
         {isLocked && (chapter.type === "quiz" || chapter.type === "essay") ? (
