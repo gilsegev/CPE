@@ -71,7 +71,7 @@ export interface DirectusUser {
 
 export interface UserActivityLog {
   id: string;
-  user_id?: string;
+  user_id?: any;
   session_id: string;
   event_type: string;
   pathname: string;

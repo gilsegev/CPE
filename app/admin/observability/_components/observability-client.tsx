@@ -28,7 +28,7 @@ import {
 
 interface Log {
   id: string;
-  user_id?: string;
+  user_id?: any;
   session_id: string;
   event_type: string;
   pathname: string;
@@ -99,9 +99,12 @@ export const ObservabilityClient = ({ initialLogs }: ObservabilityClientProps) =
           .filter((l) => l.event_type === "video_watch")
           .reduce((acc, curr) => acc + (curr.metadata?.segmentMs || 0), 0);
 
+        const sessionUserEmailLog = sorted.find((l) => l.user_id?.email);
+        const email = sessionUserEmailLog?.user_id?.email || signupLog?.metadata?.email || "Google / Saved User";
+
         conversions.push({
           sessionId,
-          email: signupLog?.metadata?.email || "Google / Saved User",
+          email,
           utmSource: purchaseLog.utm_source || firstView.utm_source || "Direct / Organic",
           utmCampaign: purchaseLog.utm_campaign || firstView.utm_campaign || "None",
           timeToConvertMin: Math.max(1, Math.round(timeToConvert / 60000)),
@@ -185,7 +188,9 @@ export const ObservabilityClient = ({ initialLogs }: ObservabilityClientProps) =
         log.session_id.toLowerCase().includes(searchTerm.toLowerCase()) ||
         log.pathname.toLowerCase().includes(searchTerm.toLowerCase()) ||
         (log.ip_address && log.ip_address.includes(searchTerm)) ||
-        (log.utm_source && log.utm_source.toLowerCase().includes(searchTerm.toLowerCase()));
+        (log.utm_source && log.utm_source.toLowerCase().includes(searchTerm.toLowerCase())) ||
+        (log.user_id?.email && log.user_id.email.toLowerCase().includes(searchTerm.toLowerCase())) ||
+        (log.metadata?.email && log.metadata.email.toLowerCase().includes(searchTerm.toLowerCase()));
 
       const matchType = eventTypeFilter === "all" || log.event_type === eventTypeFilter;
 
@@ -490,6 +495,7 @@ export const ObservabilityClient = ({ initialLogs }: ObservabilityClientProps) =
                   <th className="p-4">Event Type</th>
                   <th className="p-4">Pathname</th>
                   <th className="p-4">Masked Session</th>
+                  <th className="p-4">User Email</th>
                   <th className="p-4">IP Address</th>
                   <th className="p-4">Campaign</th>
                   <th className="p-4">Duration</th>
@@ -517,6 +523,9 @@ export const ObservabilityClient = ({ initialLogs }: ObservabilityClientProps) =
                       <td className="p-4 font-mono text-xs max-w-xs truncate text-sky-400">{log.pathname}</td>
                       <td className="p-4 font-mono text-slate-400 text-xs">
                         {log.session_id.substring(0, 8)}...
+                      </td>
+                      <td className="p-4 text-xs text-slate-300 truncate max-w-[180px]" title={log.user_id?.email || log.metadata?.email || "Anonymous"}>
+                        {log.user_id?.email || log.metadata?.email || "-"}
                       </td>
                       <td className="p-4 text-xs">{log.ip_address || "Unknown"}</td>
                       <td className="p-4 text-xs text-slate-400">
