@@ -1,4 +1,5 @@
 import { login } from "@/lib/auth";
+import { logServerEvent } from "@/lib/observability";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { cookies } from "next/headers";
@@ -24,6 +25,7 @@ export default function SignInPage({ searchParams }: SignInPageProps) {
 
     const success = await login(email, password);
     if (success) {
+      await logServerEvent("login_success", "/sign-in", { email, method: "email" });
       redirect(redirectTo || "/search");
     } else {
       redirect(`/sign-in?error=Invalid email or password&redirectTo=${redirectTo || ""}`);

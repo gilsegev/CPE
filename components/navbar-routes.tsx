@@ -16,9 +16,10 @@ import { ConfirmModal } from "@/components/modals/confirm-modal";
 interface NavbarRoutesProps {
   userId?: string | null;
   userName?: string | null;
+  isAdmin?: boolean;
 }
 
-export const NavbarRoutes = ({ userId, userName }: NavbarRoutesProps) => {
+export const NavbarRoutes = ({ userId, userName, isAdmin }: NavbarRoutesProps) => {
   const pathname = usePathname();
   const router = useRouter();
   const [isCleaning, setIsCleaning] = useState(false);
@@ -76,6 +77,14 @@ export const NavbarRoutes = ({ userId, userName }: NavbarRoutesProps) => {
             </Button>
           </Link>
         ) : null}
+
+        {isAdmin && (
+          <Link href="/admin/observability">
+            <Button size="sm" variant="ghost" className="text-white hover:text-[#e2e7f2] hover:bg-[#2d3a5a] font-semibold text-sky-400">
+              Observability
+            </Button>
+          </Link>
+        )}
 
         {userId ? (
           <div className="flex items-center gap-x-4 border-l pl-4 border-[#2d3a5a]">

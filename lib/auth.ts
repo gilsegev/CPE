@@ -1,6 +1,6 @@
 import { cookies } from "next/headers";
-import { createDirectus, rest, readMe, staticToken } from "@directus/sdk";
-import { CPESchema, DirectusUser } from "./db";
+import { createDirectus, rest, readMe, staticToken, readUser, readRole } from "@directus/sdk";
+import { CPESchema, DirectusUser, db } from "./db";
 
 const directusUrl = process.env.NEXT_PUBLIC_DIRECTUS_URL || 'https://directus-production-69c0.up.railway.app';
 
@@ -165,12 +165,37 @@ export async function getCurrentUser(): Promise<DirectusUser | null> {
   try {
     const user = await client.request(
       readMe({
-        fields: ["id", "email", "first_name", "last_name", "legal_name", "tea_id"] as any,
+        fields: ["id", "email", "first_name", "last_name", "legal_name", "tea_id", "role"] as any,
       })
     );
     return user as unknown as DirectusUser;
   } catch (error) {
     console.error("[AUTH_GET_USER_ERROR]", error);
     return null;
+  }
+}
+
+// Check if a user is an administrator
+export async function isAdmin(userId?: string): Promise<boolean> {
+  let targetUserId = userId;
+  if (!targetUserId) {
+    const user = await getCurrentUser();
+    if (!user) return false;
+    targetUserId = user.id;
+  }
+
+  try {
+    const user = await db.request(
+      readUser(targetUserId, {
+        fields: ["role"] as any,
+      })
+    );
+    if (!user || !user.role) return false;
+
+    const role = await db.request(readRole(user.role));
+    return !!(role && role.name && role.name.toLowerCase() === "administrator");
+  } catch (error) {
+    console.error("[IS_ADMIN_ERROR]", error);
+    return false;
   }
 }

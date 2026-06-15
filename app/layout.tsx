@@ -4,6 +4,7 @@ import { Pontano_Sans } from 'next/font/google'
 import { TypekitLoader } from '@/components/typekit-loader'
 import { ToastProvider } from '@/components/providers/toaster-provider'
 import { ConfettiProvider } from '@/components/providers/confetti-provider'
+import { ObservabilityProvider } from '@/components/providers/observability-provider'
 
 const pontanoSans = Pontano_Sans({ 
   subsets: ['latin'],
@@ -27,7 +28,9 @@ export default function RootLayout({
         <TypekitLoader />
         <ConfettiProvider />
         <ToastProvider />
-        {children}
+        <ObservabilityProvider>
+          {children}
+        </ObservabilityProvider>
       </body>
     </html>
   )

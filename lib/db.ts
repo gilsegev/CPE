@@ -66,6 +66,23 @@ export interface DirectusUser {
   last_name: string;
   legal_name: string;
   tea_id?: string;
+  role?: string;
+}
+
+export interface UserActivityLog {
+  id: string;
+  user_id?: string;
+  session_id: string;
+  event_type: string;
+  pathname: string;
+  referrer?: string;
+  duration_ms?: number;
+  ip_address?: string;
+  utm_source?: string;
+  utm_medium?: string;
+  utm_campaign?: string;
+  metadata?: any;
+  timestamp: string;
 }
 
 export interface UserProgress {
@@ -93,6 +110,7 @@ export type CPESchema = {
   Certificates: Certificate[];
   UserProgress: UserProgress[];
   QuizProgress: QuizProgress[];
+  UserActivityLogs: UserActivityLog[];
 };
 
 const directusUrl = process.env.NEXT_PUBLIC_DIRECTUS_URL || 'https://directus-production-69c0.up.railway.app';

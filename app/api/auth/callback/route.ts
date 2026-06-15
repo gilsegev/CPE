@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { readUsers, createUser, updateUser, readRoles, readRole } from "@directus/sdk";
 import { db, DirectusUser } from "@/lib/db";
 import { login } from "@/lib/auth";
+import { logServerEvent } from "@/lib/observability";
 
 export async function GET(request: NextRequest) {
   const { searchParams } = request.nextUrl;
@@ -105,6 +106,7 @@ export async function GET(request: NextRequest) {
     }
 
     // 4. If user doesn't exist, register them as a Student with empty legal_name
+    const isNewUser = !user;
     if (!user) {
       // Fetch Student role ID dynamically
       const roles = await db.request(
@@ -156,6 +158,14 @@ export async function GET(request: NextRequest) {
     if (!success) {
       throw new Error("Failed to authenticate session with Directus");
     }
+
+    // 8. Log the OAuth login/signup event
+    await logServerEvent(
+      isNewUser ? "signup_success" : "login_success",
+      "/api/auth/callback",
+      { email, method: "google" },
+      user.id
+    );
 
     // 8. Gate profile confirmation
     // If legal_name is missing or empty, redirect to confirm-profile onboarding

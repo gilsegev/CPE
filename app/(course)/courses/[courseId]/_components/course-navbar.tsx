@@ -1,5 +1,5 @@
 import { NavbarRoutes } from "@/components/navbar-routes";
-import { getCurrentUser } from "@/lib/auth";
+import { getCurrentUser, isAdmin } from "@/lib/auth";
 import { CourseMobileSidebar } from "./course-mobile-sidebar";
 import { Logo } from "@/app/(dashboard)/_components/logo";
 import Link from "next/link";
@@ -15,6 +15,7 @@ export const CourseNavbar = async ({
   progressCount,
 }: CourseNavbarProps) => {
   const user = await getCurrentUser();
+  const isUserAdmin = user ? await isAdmin(user.id) : false;
 
   return (
     <div className="px-6 border-b border-[#2d3a5a] h-full flex items-center bg-[#18223b] text-white shadow-md justify-between">
@@ -68,6 +69,7 @@ export const CourseNavbar = async ({
         <NavbarRoutes 
           userId={user?.id}
           userName={user?.first_name || user?.legal_name}
+          isAdmin={isUserAdmin}
         />
       </div>
     </div>
