@@ -1,6 +1,7 @@
 import { getCurrentUser } from "@/lib/auth";
 import { redirect } from "next/navigation";
-import { File, Lock } from "lucide-react";
+import { File, Lock, ArrowRight } from "lucide-react";
+import Link from "next/link";
 
 import { getChapter } from "@/actions/get-chapter";
 import { Banner } from "@/components/banner";
@@ -15,6 +16,7 @@ import { CourseProgressButton } from "./_components/course-progress-button";
 import { QuizAssessment } from "./_components/quiz-assessment";
 import { EssayAssessment } from "./_components/essay-assessment";
 import { PaymentVerificationPoller } from "./_components/payment-verification-poller";
+import { Button } from "@/components/ui/button";
 
 const ChapterIdPage = async ({
   params,
@@ -201,26 +203,51 @@ const ChapterIdPage = async ({
                     <h2 className="text-2xl font-semibold mb-2">
                       {chapter.title}
                     </h2>
-                    {purchase ? (
-                      <CourseProgressButton
-                        chapterId={params.chapterId}
-                        courseId={params.courseId}
-                        nextChapterId={nextChapter?.id}
-                        isCompleted={!!userProgress?.isCompleted}
-                      />
-                    ) : (
-                      <CourseEnrollButton
-                        courseId={params.courseId}
-                        price={(course as any).price}
-                        isLoggedIn={!!userId}
-                        chapterId={params.chapterId}
-                      />
+                    {purchase && (
+                      <div className="flex flex-col md:flex-row gap-2">
+                        <CourseProgressButton
+                          chapterId={params.chapterId}
+                          courseId={params.courseId}
+                          nextChapterId={nextChapter?.id}
+                          isCompleted={!!userProgress?.isCompleted}
+                        />
+                        {!!userProgress?.isCompleted && nextChapter?.id && (
+                          <Link href={`/courses/${params.courseId}/chapters/${nextChapter.id}`}>
+                            <Button
+                              variant="default"
+                              className="w-full md:w-auto bg-slate-900 hover:bg-slate-800 text-white font-semibold flex items-center justify-center gap-x-2"
+                            >
+                              Continue to Next Chapter
+                              <ArrowRight className="h-4 w-4" />
+                            </Button>
+                          </Link>
+                        )}
+                      </div>
                     )}
                   </div>
                   <Separator />
-                  <div>
+                  <div className="p-4">
                     <Preview value={chapter.description!} />
                   </div>
+                  {!purchase && (
+                    <div className="p-4 mt-4">
+                      <div className="bg-[#18223b]/5 dark:bg-[#1a2333]/40 border border-[#18223b]/20 dark:border-[#2d3a5a] rounded-xl p-6 md:p-8 flex flex-col items-center text-center max-w-3xl mx-auto shadow-md">
+                        <span className="text-3xl mb-3">🔒</span>
+                        <h3 className="text-xl font-bold text-slate-800 dark:text-white">
+                          Unlock the Full Continuing Education Track
+                        </h3>
+                        <p className="text-sm text-slate-500 dark:text-slate-400 mt-2 mb-6 max-w-xl">
+                          Enroll today to gain full access to all modules, compliance quizzes, case studies, and your official CPE Certificate.
+                        </p>
+                        <CourseEnrollButton
+                          courseId={params.courseId}
+                          price={(course as any).price}
+                          isLoggedIn={!!userId}
+                          chapterId={params.chapterId}
+                        />
+                      </div>
+                    </div>
+                  )}
                   {!!attachments.length && (
                     <>
                       <Separator />

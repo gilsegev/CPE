@@ -48,10 +48,6 @@ export const VideoPlayer = ({
 
         toast.success("Progress updated");
         router.refresh();
-
-        if (nextChapterId) {
-          router.push(`/courses/${courseId}/chapters/${nextChapterId}`)
-        }
       }
     } catch {
       toast.error("Something went wrong");
