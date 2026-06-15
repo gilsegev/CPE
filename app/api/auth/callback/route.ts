@@ -94,17 +94,6 @@ export async function GET(request: NextRequest) {
 
     let user = users[0] as unknown as DirectusUser;
 
-    // Check if the user is an Administrator to avoid wiping their password via Google OAuth login
-    if (user && (user as any).role) {
-      const role = await db.request(readRole((user as any).role));
-      if (role && role.name && role.name.toLowerCase() === "administrator") {
-        console.error(`[OAUTH_CALLBACK_ERROR] Administrator ${email} attempted to sign in via Google OAuth`);
-        return NextResponse.redirect(
-          new URL(`/sign-in?error=Google sign-in is not allowed for administrator accounts. Please sign in using your email and password.`, appUrl)
-        );
-      }
-    }
-
     // 4. If user doesn't exist, register them as a Student with empty legal_name
     const isNewUser = !user;
     if (!user) {
@@ -131,33 +120,27 @@ export async function GET(request: NextRequest) {
       )) as unknown as DirectusUser;
     }
 
-    // 5. Generate a secure random temporary password
-    const tempPassword =
-      Math.random().toString(36).substring(2, 15) +
-      Math.random().toString(36).substring(2, 15) +
-      "!";
+    // 5. Generate a secure static session token for Google OAuth authentication
+    const staticToken = Math.random().toString(36).substring(2, 15) +
+                        Math.random().toString(36).substring(2, 15) +
+                        Math.random().toString(36).substring(2, 15);
 
-    // Update user password in Directus
+    // 6. Update user's static token in Directus (leaves password untouched)
     await db.request(
       updateUser(user.id, {
-        password: tempPassword,
+        token: staticToken,
       } as any)
     );
 
-    // 6. Log the user into Directus via standard password credentials
-    // This calls the login helper, which automatically sets directus_access_token & directus_refresh_token cookies!
-    const success = await login(email, tempPassword);
-
-    // 7. Clear user password in Directus to enforce passwordless Google logins
-    await db.request(
-      updateUser(user.id, {
-        password: null,
-      } as any)
-    );
-
-    if (!success) {
-      throw new Error("Failed to authenticate session with Directus");
-    }
+    // 7. Store the static token directly in cookies to log the user in
+    const cookieStore = cookies();
+    cookieStore.set("directus_access_token", staticToken, {
+      path: "/",
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      maxAge: 30 * 24 * 60 * 60, // 30 days session
+    });
+    cookieStore.delete("directus_refresh_token"); // Remove any legacy refresh token
 
     // 8. Log the OAuth login/signup event
     await logServerEvent(
