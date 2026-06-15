@@ -149,7 +149,7 @@ const ChapterIdPage = async ({
       {searchParams.success === "1" && !purchase && (
         <PaymentVerificationPoller courseId={params.courseId} />
       )}
-      <div className="flex flex-col max-w-5xl mx-auto pb-20">
+      <div className="flex flex-col max-w-7xl mx-auto pb-20">
         {isLocked && (chapter.type === "quiz" || chapter.type === "essay") ? (
           <div className="p-4 flex flex-col items-center justify-center min-h-[400px] text-center bg-slate-50 border border-slate-200 rounded-xl mt-6 mx-4">
             <Lock className="h-12 w-12 text-slate-400 mb-4 animate-pulse" />
