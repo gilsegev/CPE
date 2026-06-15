@@ -7,6 +7,7 @@ import { Loader2 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { formatPrice } from "@/lib/format";
+import { useObservability } from "@/components/providers/observability-provider";
 
 interface CourseEnrollButtonProps {
   price: number;
@@ -22,6 +23,7 @@ export const CourseEnrollButton = ({
   chapterId,
 }: CourseEnrollButtonProps) => {
   const [isLoading, setIsLoading] = useState(false);
+  const { logEvent } = useObservability();
 
   const onClick = async () => {
     if (!isLoggedIn) {
@@ -31,6 +33,7 @@ export const CourseEnrollButton = ({
 
     try {
       setIsLoading(true);
+      logEvent("checkout_start", { courseId, price });
 
       const response = await axios.post(`/api/courses/${courseId}/checkout`)
 

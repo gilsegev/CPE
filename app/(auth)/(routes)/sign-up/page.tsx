@@ -1,6 +1,7 @@
 import { db } from "@/lib/db";
 import { createUser, readRoles } from "@directus/sdk";
 import { login } from "@/lib/auth";
+import { logServerEvent } from "@/lib/observability";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { cookies } from "next/headers";
@@ -56,6 +57,9 @@ export default function SignUpPage({ searchParams }: SignUpPageProps) {
 
       // 3. Log the user in automatically
       success = await login(email, password);
+      if (success) {
+        await logServerEvent("signup_success", "/sign-up", { email, method: "email" });
+      }
     } catch (err: any) {
       console.error("[SIGNUP_ERROR]", err);
       

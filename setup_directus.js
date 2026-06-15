@@ -209,6 +209,26 @@ async function main() {
         { field: 'user_id', type: 'uuid', meta: { interface: 'select-relational', hidden: true } },
         { field: 'module_id', type: 'uuid', meta: { interface: 'select-relational', hidden: true } }
       ]
+    },
+    {
+      collection: 'UserActivityLogs',
+      schema: {},
+      meta: { show_in_navigation: true, icon: 'analytics' },
+      fields: [
+        { field: 'id', type: 'uuid', schema: { is_primary_key: true }, meta: { interface: 'input', readonly: true, hidden: true, special: ['uuid'] } },
+        { field: 'user_id', type: 'uuid', meta: { interface: 'select-relational', hidden: true } },
+        { field: 'session_id', type: 'string', meta: { interface: 'input' } },
+        { field: 'event_type', type: 'string', meta: { interface: 'input', required: true } },
+        { field: 'pathname', type: 'string', meta: { interface: 'input' } },
+        { field: 'referrer', type: 'string', meta: { interface: 'input' } },
+        { field: 'duration_ms', type: 'integer', meta: { interface: 'input' } },
+        { field: 'ip_address', type: 'string', meta: { interface: 'input' } },
+        { field: 'utm_source', type: 'string', meta: { interface: 'input' } },
+        { field: 'utm_medium', type: 'string', meta: { interface: 'input' } },
+        { field: 'utm_campaign', type: 'string', meta: { interface: 'input' } },
+        { field: 'metadata', type: 'json', meta: { interface: 'tags' } },
+        { field: 'timestamp', type: 'timestamp', schema: { default_value: 'CURRENT_TIMESTAMP' }, meta: { interface: 'datetime' } }
+      ]
     }
   ];
 
@@ -249,7 +269,9 @@ async function main() {
     { collection: 'Certificates', field: 'course_id', related_collection: 'Courses' },
     // UserProgress -> Users & Modules
     { collection: 'UserProgress', field: 'user_id', related_collection: 'directus_users' },
-    { collection: 'UserProgress', field: 'module_id', related_collection: 'Modules' }
+    { collection: 'UserProgress', field: 'module_id', related_collection: 'Modules' },
+    // UserActivityLogs -> Users
+    { collection: 'UserActivityLogs', field: 'user_id', related_collection: 'directus_users' }
   ];
 
   for (const rel of relations) {
@@ -267,6 +289,9 @@ async function main() {
 
   // 4. Setup Roles and Permissions
   await setupRolesAndPermissions();
+
+  // 5. Prepopulate Administrator users
+  await seedAdminUsers();
 
   console.log('\n\x1b[32m[✓] Directus backend setup successfully completed!\x1b[0m\n');
   console.log('Next steps:');
@@ -448,6 +473,12 @@ async function setupRolesAndPermissions() {
       collection: 'directus_files',
       action: 'read'
     },
+    {
+      target: 'student',
+      collection: 'UserActivityLogs',
+      action: 'create',
+      fields: ['*']
+    },
 
     // === PUBLIC PERMISSIONS ===
     {
@@ -472,6 +503,12 @@ async function setupRolesAndPermissions() {
       target: 'public',
       collection: 'directus_files',
       action: 'read'
+    },
+    {
+      target: 'public',
+      collection: 'UserActivityLogs',
+      action: 'create',
+      fields: ['*']
     }
   ];
 
@@ -511,6 +548,58 @@ async function setupRolesAndPermissions() {
       }
     } catch (err) {
       console.warn(`   [!] Warning: Failed to set permission for ${p.target} on ${p.collection} (${p.action}): ${err.message}`);
+    }
+  }
+}
+
+async function seedAdminUsers() {
+  console.log('\n5. Prepopulating Admin users...');
+  
+  // 1. Get Administrator role
+  const rolesRes = await api('/roles', 'GET');
+  const roles = rolesRes.data || [];
+  const adminRole = roles.find(r => r.name.toLowerCase() === 'administrator');
+  
+  if (!adminRole) {
+    console.warn('   [!] Warning: Administrator role not found in Directus');
+    return;
+  }
+  
+  const adminEmails = [
+    'gil.segev@gmail.com',
+    'mock.design.interview@gmail.com',
+    'michalsegev3@gmail.com'
+  ];
+  
+  for (const email of adminEmails) {
+    try {
+      // Check if user exists
+      const usersRes = await api(`/users?filter[email][_eq]=${email}`, 'GET');
+      const users = usersRes.data || [];
+      
+      if (users.length > 0) {
+        const user = users[0];
+        if (user.role !== adminRole.id) {
+          console.log(`   [~] Updating ${email} to have Administrator role...`);
+          await api(`/users/${user.id}`, 'PATCH', { role: adminRole.id });
+          console.log(`   [✓] Promoted ${email} to Administrator`);
+        } else {
+          console.log(`   [i] User ${email} already exists as Administrator`);
+        }
+      } else {
+        console.log(`   [+] Creating Administrator user: ${email}...`);
+        await api('/users', 'POST', {
+          email,
+          first_name: email.split('@')[0],
+          last_name: 'Admin',
+          role: adminRole.id,
+          password: 'CPEAdmin2026!',
+          status: 'active'
+        });
+        console.log(`   [✓] Created Administrator: ${email}`);
+      }
+    } catch (err) {
+      console.warn(`   [!] Warning: Failed to configure admin user ${email}: ${err.message}`);
     }
   }
 }

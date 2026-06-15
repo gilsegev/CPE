@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { Loader2, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useObservability } from "@/components/providers/observability-provider";
 
 interface PaymentVerificationPollerProps {
   courseId: string;
@@ -12,12 +13,17 @@ export const PaymentVerificationPoller = ({ courseId }: PaymentVerificationPolle
   const [attempts, setAttempts] = useState(0);
   const maxAttempts = 15; // 30 seconds total (15 * 2s)
   const [timedOut, setTimedOut] = useState(false);
+  const { logEvent } = useObservability();
 
   useEffect(() => {
     const key = `payment_verify_attempts_${courseId}`;
     const stored = sessionStorage.getItem(key);
     const currentAttempts = stored ? parseInt(stored, 10) : 0;
     setAttempts(currentAttempts);
+
+    if (currentAttempts === 0) {
+      logEvent("purchase_success", { courseId });
+    }
 
     if (currentAttempts >= maxAttempts) {
       setTimedOut(true);
@@ -30,6 +36,7 @@ export const PaymentVerificationPoller = ({ courseId }: PaymentVerificationPolle
     }, 2000);
 
     return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [courseId]);
 
   const handleManualRefresh = () => {
