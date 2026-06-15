@@ -22,6 +22,7 @@ export default async function ObservabilityPage() {
     readItems("UserActivityLogs", {
       sort: ["-timestamp"],
       limit: 2000,
+      fields: ["*", "user_id.email" as any],
     })
   );
 
