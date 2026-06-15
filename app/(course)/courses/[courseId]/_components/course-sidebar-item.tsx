@@ -51,7 +51,7 @@ export const CourseSidebarItem = ({
         isActive && "text-slate-700 bg-slate-200/20 hover:bg-slate-200/20 hover:text-slate-700",
         isCompleted && "text-emerald-700 hover:text-emerald-700",
         isCompleted && isActive && "bg-emerald-200/20",
-        isLocked && "opacity-60 cursor-not-allowed hover:bg-transparent hover:text-slate-500"
+        isLocked && "text-slate-400 hover:text-slate-400 cursor-not-allowed hover:bg-transparent"
       )}
     >
       <div className="flex items-center gap-x-2 py-4">
@@ -61,7 +61,7 @@ export const CourseSidebarItem = ({
             "text-slate-500",
             isActive && "text-slate-700",
             isCompleted && "text-emerald-700",
-            isLocked && "text-slate-400"
+            isLocked && "text-amber-500"
           )}
         />
         {label}

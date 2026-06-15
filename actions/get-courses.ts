@@ -21,7 +21,7 @@ export const getCourses = async ({
       readItems("Courses", {
         filter: {
           is_published: { _eq: true },
-          ...(title ? { title: { _contains: title } } : {}),
+          ...(title ? { title: { _icontains: title } } : {}),
         },
         fields: ["id", "title", "description", "price", "is_published", "thumbnail_url"],
       })

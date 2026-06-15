@@ -38,10 +38,6 @@ export const CourseProgressButton = ({
         confetti.onOpen();
       }
 
-      if (!isCompleted && nextChapterId) {
-        router.push(`/courses/${courseId}/chapters/${nextChapterId}`);
-      }
-
       toast.success("Progress updated");
       router.refresh();
     } catch {

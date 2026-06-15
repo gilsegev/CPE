@@ -154,7 +154,11 @@ export const QuizAssessment = ({
         )
       );
 
-      toast.success(correct ? "Correct answer!" : "Incorrect answer.");
+      if (correct) {
+        toast.success("Correct answer!");
+      } else {
+        toast.error("Incorrect. Review the explanation below to continue.");
+      }
       setSelectedOption(null);
     } catch (error) {
       toast.error("Failed to submit answer");
@@ -450,7 +454,9 @@ export const QuizAssessment = ({
                 onClick={onNext}
                 className="w-full sm:w-auto px-4 py-5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white"
               >
-                Next
+                {questionFeedback && questionFeedback.correctIndex !== userAnswer
+                  ? "Review Explanation & Continue"
+                  : "Next"}
                 <ArrowRight className="h-4 w-4 ml-2" />
               </Button>
             )}
