@@ -65,11 +65,6 @@ export const CourseSidebarItem = ({
           )}
         />
         {label}
-        {isLocked && (
-          <span className="ml-2 px-1.5 py-0.5 text-[9px] font-bold uppercase rounded bg-amber-500/10 text-amber-600 border border-amber-500/20 whitespace-nowrap">
-            Premium
-          </span>
-        )}
       </div>
       <div className={cn(
         "ml-auto opacity-0 border-2 border-slate-700 h-full transition-all",
