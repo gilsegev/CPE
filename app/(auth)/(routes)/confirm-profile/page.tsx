@@ -71,7 +71,7 @@ export default async function ConfirmProfilePage({ searchParams }: ConfirmProfil
   }
 
   return (
-    <div className="w-[480px] bg-white p-8 rounded-xl shadow-md border border-slate-100">
+    <div className="w-full max-w-[480px] bg-white p-6 sm:p-8 rounded-xl shadow-md border border-slate-100">
       <div className="mb-6 text-center">
         <h1 className="text-2xl font-bold text-slate-800">Confirm Your Information</h1>
         <p className="text-sm text-slate-500 mt-1">
