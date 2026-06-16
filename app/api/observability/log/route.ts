@@ -1,11 +1,19 @@
 import { NextResponse } from "next/server";
-import { getCurrentUser } from "@/lib/auth";
+import { getCurrentUser, isAdmin } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { createItem } from "@directus/sdk";
 
 export async function POST(req: Request) {
   try {
     const user = await getCurrentUser();
+    
+    // Skip tracking client action logs triggered by administrators
+    if (user) {
+      const isUserAdmin = await isAdmin(user.id);
+      if (isUserAdmin) {
+        return NextResponse.json({ skipped: true, reason: "Admin activities are not logged" });
+      }
+    }
     let body;
     try {
       body = await req.json();

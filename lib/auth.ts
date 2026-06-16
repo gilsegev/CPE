@@ -128,6 +128,11 @@ export async function login(email: string, password: string): Promise<boolean> {
       maxAge: 7 * 24 * 60 * 60, // 7 days
     });
 
+    // Rotate session ID on successful login to isolate guest vs user sessions
+    try {
+      cookieStore.delete("cpe_session_id");
+    } catch (err) {}
+
     return true;
   } catch (error) {
     console.error("[AUTH_LOGIN_ERROR]", error);
@@ -155,6 +160,11 @@ export async function logout(): Promise<void> {
   // Always delete local cookies
   cookieStore.delete("directus_access_token");
   cookieStore.delete("directus_refresh_token");
+  
+  // Rotate session ID on logout to isolate guest vs user sessions
+  try {
+    cookieStore.delete("cpe_session_id");
+  } catch (err) {}
 }
 
 // Get currently logged-in user profile
@@ -187,13 +197,20 @@ export async function isAdmin(userId?: string): Promise<boolean> {
   try {
     const user = await db.request(
       readUser(targetUserId, {
-        fields: ["role"] as any,
+        fields: ["role.*", "role"] as any,
       })
     );
     if (!user || !user.role) return false;
 
-    const role = await db.request(readRole(user.role));
-    return !!(role && role.name && role.name.toLowerCase() === "administrator");
+    let roleName = "";
+    if (typeof user.role === "object" && user.role !== null) {
+      roleName = (user.role as any).name || "";
+    } else if (typeof user.role === "string") {
+      const role = await db.request(readRole(user.role));
+      roleName = (role && role.name) || "";
+    }
+
+    return roleName.toLowerCase() === "administrator";
   } catch (error) {
     console.error("[IS_ADMIN_ERROR]", error);
     return false;

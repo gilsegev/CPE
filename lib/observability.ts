@@ -1,6 +1,7 @@
 import { db } from "@/lib/db";
 import { createItem, readItems } from "@directus/sdk";
 import { cookies, headers } from "next/headers";
+import { getCurrentUser, isAdmin } from "@/lib/auth";
 
 export async function logServerEvent(
   eventType: string,
@@ -9,6 +10,17 @@ export async function logServerEvent(
   userId?: string
 ) {
   try {
+    // Prevent logging administrative actions in the system observability database
+    if (userId) {
+      const isUserAdmin = await isAdmin(userId);
+      if (isUserAdmin) return;
+    } else {
+      const user = await getCurrentUser();
+      if (user) {
+        const isUserAdmin = await isAdmin(user.id);
+        if (isUserAdmin) return;
+      }
+    }
     const cookieStore = cookies();
     const sessionId = cookieStore.get("cpe_session_id")?.value || "anonymous";
 

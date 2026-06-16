@@ -141,6 +141,11 @@ export async function GET(request: NextRequest) {
       maxAge: 30 * 24 * 60 * 60, // 30 days session
     });
     cookieStore.delete("directus_refresh_token"); // Remove any legacy refresh token
+    
+    // Rotate session ID on Google OAuth login to isolate guest vs user sessions
+    try {
+      cookieStore.delete("cpe_session_id");
+    } catch (err) {}
 
     // 8. Log the OAuth login/signup event
     await logServerEvent(

@@ -54,10 +54,46 @@ export const ObservabilityProvider = ({ children }: { children: React.ReactNode 
   const entryTimeRef = useRef<number>(0);
   const maxScrollRef = useRef<number>(0);
 
+  const getOrGenerateSessionId = () => {
+    if (typeof window === "undefined") return "ssr";
+
+    let sessId = sessionRef.current || sessionStorage.getItem("cpe_session_id") || "";
+    
+    const cookiesObj = typeof document !== "undefined"
+      ? Object.fromEntries(document.cookie.split(";").map(c => {
+          const parts = c.split("=");
+          return [parts[0].trim(), parts.slice(1).join("=").trim()];
+        }))
+      : {};
+    const cookieSessId = cookiesObj["cpe_session_id"];
+
+    if (cookieSessId && !sessId) {
+      sessId = cookieSessId;
+      sessionStorage.setItem("cpe_session_id", sessId);
+    } else if (!cookieSessId && sessId) {
+      // Cookie was deleted by server (login/logout transition) -> Rotate!
+      sessId = typeof crypto.randomUUID === "function" 
+        ? crypto.randomUUID() 
+        : Math.random().toString(36).substring(2) + Math.random().toString(36).substring(2);
+      sessionStorage.setItem("cpe_session_id", sessId);
+      document.cookie = `cpe_session_id=${sessId}; path=/; max-age=${60 * 60 * 24 * 30}`;
+    } else if (!sessId) {
+      // Both missing -> Generate new
+      sessId = typeof crypto.randomUUID === "function" 
+        ? crypto.randomUUID() 
+        : Math.random().toString(36).substring(2) + Math.random().toString(36).substring(2);
+      sessionStorage.setItem("cpe_session_id", sessId);
+      document.cookie = `cpe_session_id=${sessId}; path=/; max-age=${60 * 60 * 24 * 30}`;
+    }
+
+    sessionRef.current = sessId;
+    return sessId;
+  };
+
   // Utility to send event log
   const logEvent = async (eventType: string, metadata: any = {}, durationMs?: number) => {
     try {
-      const sessId = sessionRef.current || sessionStorage.getItem("cpe_session_id") || "anonymous";
+      const sessId = getOrGenerateSessionId();
       const utmSource = sessionStorage.getItem("utm_source") || undefined;
       const utmMedium = sessionStorage.getItem("utm_medium") || undefined;
       const utmCampaign = sessionStorage.getItem("utm_campaign") || undefined;
@@ -89,15 +125,7 @@ export const ObservabilityProvider = ({ children }: { children: React.ReactNode 
   // Initialize Session and Referrer
   useEffect(() => {
     // 1. Get or generate Session ID
-    let sessId = sessionStorage.getItem("cpe_session_id");
-    if (!sessId) {
-      sessId = typeof crypto.randomUUID === "function" 
-        ? crypto.randomUUID() 
-        : Math.random().toString(36).substring(2) + Math.random().toString(36).substring(2);
-      sessionStorage.setItem("cpe_session_id", sessId);
-    }
-    sessionRef.current = sessId;
-    document.cookie = `cpe_session_id=${sessId}; path=/; max-age=${60 * 60 * 24 * 30}`; // 30 days
+    getOrGenerateSessionId();
 
     if (typeof document !== "undefined" && document.referrer) {
       sessionStorage.setItem("cpe_referrer", document.referrer);
