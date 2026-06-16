@@ -1,6 +1,6 @@
 import { db } from "@/lib/db";
 import { createUser, readRoles } from "@directus/sdk";
-import { login } from "@/lib/auth";
+import { login, getCurrentUser } from "@/lib/auth";
 import { logServerEvent } from "@/lib/observability";
 import { redirect } from "next/navigation";
 import Link from "next/link";
@@ -13,8 +13,13 @@ interface SignUpPageProps {
   };
 }
 
-export default function SignUpPage({ searchParams }: SignUpPageProps) {
+export default async function SignUpPage({ searchParams }: SignUpPageProps) {
   const { error, redirectTo } = searchParams;
+
+  const user = await getCurrentUser();
+  if (user) {
+    redirect(redirectTo || "/search");
+  }
 
   async function handleSignUp(formData: FormData) {
     "use server";

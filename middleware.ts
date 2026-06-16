@@ -95,11 +95,6 @@ export async function middleware(request: NextRequest) {
 
   const hasToken = !!accessToken || !!refreshToken;
 
-  // Redirect authenticated users trying to access login/signup to search catalog
-  if (hasToken && (pathname.startsWith("/sign-in") || pathname.startsWith("/sign-up"))) {
-    return NextResponse.redirect(new URL("/search", request.url));
-  }
-
   // Redirect unauthenticated users trying to access protected paths to sign-in
   if (!isPublicRoute && !hasToken) {
     const signInUrl = new URL("/sign-in", request.url);

@@ -1,4 +1,4 @@
-import { login } from "@/lib/auth";
+import { login, getCurrentUser } from "@/lib/auth";
 import { logServerEvent } from "@/lib/observability";
 import { redirect } from "next/navigation";
 import Link from "next/link";
@@ -11,8 +11,13 @@ interface SignInPageProps {
   };
 }
 
-export default function SignInPage({ searchParams }: SignInPageProps) {
+export default async function SignInPage({ searchParams }: SignInPageProps) {
   const { redirectTo, error } = searchParams;
+
+  const user = await getCurrentUser();
+  if (user) {
+    redirect(redirectTo || "/search");
+  }
 
   async function handleSignIn(formData: FormData) {
     "use server";
