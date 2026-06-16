@@ -354,7 +354,7 @@ export const ObservabilityClient = ({
           .filter((l) => l.event_type === "video_watch")
           .reduce((acc, curr) => acc + (curr.metadata?.segmentMs || 0), 0);
 
-        const sessionUserEmailLog = sorted.find((l) => l.user_id?.email);
+        const sessionUserEmailLog = [...sorted].reverse().find((l) => l.user_id?.email);
         const email = sessionUserEmailLog?.user_id?.email || signupLog?.metadata?.email || "Google / Saved User";
 
         conversions.push({
@@ -856,9 +856,8 @@ export const ObservabilityClient = ({
 
       {/* User Journey Flow Timeline Modal */}
       {selectedSessionId && (() => {
-        const userEmail = sessionTimelineLogs.find(l => l.user_id?.email || l.metadata?.email)?.user_id?.email || 
-                          sessionTimelineLogs.find(l => l.user_id?.email || l.metadata?.email)?.metadata?.email || 
-                          "Anonymous Guest";
+        const lastEmailLog = [...sessionTimelineLogs].reverse().find(l => l.user_id?.email || l.metadata?.email);
+        const userEmail = lastEmailLog?.user_id?.email || lastEmailLog?.metadata?.email || "Anonymous Guest";
         const avatarInitial = userEmail !== "Anonymous Guest" ? userEmail.charAt(0).toUpperCase() : "?";
         
         const firstUtmSource = sessionTimelineLogs.find(l => l.utm_source)?.utm_source;
