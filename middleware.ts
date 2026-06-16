@@ -10,6 +10,7 @@ export async function middleware(request: NextRequest) {
     pathname.startsWith("/sign-up") ||
     pathname.startsWith("/api/auth/callback") ||
     pathname.startsWith("/api/webhook") ||
+    pathname.startsWith("/api/observability") ||
     pathname.startsWith("/search") ||
     pathname.startsWith("/courses") ||
     pathname === "/"; // Home landing page is public
