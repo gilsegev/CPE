@@ -115,6 +115,9 @@ export const ObservabilityProvider = ({ children }: { children: React.ReactNode 
 
     const entryTime = Date.now();
     const prevPath = currentPathRef.current;
+
+    // Prevent duplicate logging of identical consecutive page views
+    if (prevPath === pathname) return;
     
     // Log exit of previous page
     if (prevPath && entryTimeRef.current > 0) {

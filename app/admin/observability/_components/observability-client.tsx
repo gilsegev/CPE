@@ -23,7 +23,21 @@ import {
   Search, 
   Filter, 
   Video, 
-  BookOpen 
+  BookOpen,
+  Home,
+  Compass,
+  LogIn,
+  UserCheck,
+  ShieldAlert,
+  CreditCard,
+  Sparkles,
+  Laptop,
+  MapPin,
+  Calendar,
+  ArrowRight,
+  ChevronRight,
+  Globe,
+  Play
 } from "lucide-react";
 
 interface Log {
@@ -44,7 +58,134 @@ interface Log {
 
 interface ObservabilityClientProps {
   initialLogs: Log[];
+  courseMap?: Record<string, string>;
+  moduleMap?: Record<string, string>;
 }
+
+const getCleanPathLabel = (
+  path: string,
+  courseMap?: Record<string, string>,
+  moduleMap?: Record<string, string>
+) => {
+  const cleanPath = path || "/";
+  
+  if (cleanPath === "/") {
+    return {
+      title: "Student Dashboard",
+      subtitle: "Main page displaying enrolled courses and progress",
+      icon: Home,
+      gradient: "from-blue-500 to-indigo-500",
+      bgColor: "bg-blue-500/10",
+      borderColor: "border-blue-500/30",
+      iconColor: "text-blue-400"
+    };
+  }
+  
+  if (cleanPath.startsWith("/search")) {
+    return {
+      title: "Explore Catalog",
+      subtitle: "Browsing and searching for courses",
+      icon: Compass,
+      gradient: "from-sky-500 to-emerald-500",
+      bgColor: "bg-sky-500/10",
+      borderColor: "border-sky-500/30",
+      iconColor: "text-sky-400"
+    };
+  }
+  
+  // Check for course chapter/study room
+  const chapterMatch = cleanPath.match(/\/courses\/([^\/]+)\/chapters\/([^\/]+)/);
+  if (chapterMatch) {
+    const courseId = chapterMatch[1];
+    const chapterId = chapterMatch[2];
+    const courseTitle = courseMap?.[courseId] || `Course: ${courseId.substring(0, 8)}`;
+    const chapterTitle = moduleMap?.[chapterId] || `Chapter: ${chapterId.substring(0, 8)}`;
+    return {
+      title: "Course Study Room",
+      subtitle: `${courseTitle} ➔ ${chapterTitle}`,
+      icon: Play,
+      gradient: "from-amber-500 to-orange-500",
+      bgColor: "bg-amber-500/10",
+      borderColor: "border-amber-500/30",
+      iconColor: "text-amber-400"
+    };
+  }
+  
+  // Check for course detail page
+  const courseMatch = cleanPath.match(/\/courses\/([^\/]+)/);
+  if (courseMatch) {
+    const courseId = courseMatch[1];
+    const courseTitle = courseMap?.[courseId] || `Course: ${courseId.substring(0, 8)}`;
+    return {
+      title: "Course Detail Page",
+      subtitle: courseTitle,
+      icon: BookOpen,
+      gradient: "from-indigo-500 to-purple-500",
+      bgColor: "bg-indigo-500/10",
+      borderColor: "border-indigo-500/30",
+      iconColor: "text-indigo-400"
+    };
+  }
+  
+  if (cleanPath.startsWith("/confirm-profile")) {
+    return {
+      title: "Profile Setup",
+      subtitle: "Configuring student account settings",
+      icon: UserCheck,
+      gradient: "from-teal-500 to-emerald-500",
+      bgColor: "bg-teal-500/10",
+      borderColor: "border-teal-500/30",
+      iconColor: "text-teal-400"
+    };
+  }
+  
+  if (cleanPath.startsWith("/sign-in")) {
+    return {
+      title: "Sign In",
+      subtitle: "Accessing existing account",
+      icon: LogIn,
+      gradient: "from-violet-500 to-purple-500",
+      bgColor: "bg-violet-500/10",
+      borderColor: "border-violet-500/30",
+      iconColor: "text-violet-400"
+    };
+  }
+  
+  if (cleanPath.startsWith("/sign-up")) {
+    return {
+      title: "Create Account",
+      subtitle: "Registering new student profile",
+      icon: UserPlus,
+      gradient: "from-fuchsia-500 to-pink-500",
+      bgColor: "bg-fuchsia-500/10",
+      borderColor: "border-fuchsia-500/30",
+      iconColor: "text-fuchsia-400"
+    };
+  }
+  
+  if (cleanPath.startsWith("/admin")) {
+    return {
+      title: "Admin Observability Console",
+      subtitle: "Monitoring platform logs & telemetry",
+      icon: ShieldAlert,
+      gradient: "from-rose-500 to-pink-500",
+      bgColor: "bg-rose-500/10",
+      borderColor: "border-rose-500/30",
+      iconColor: "text-rose-400"
+    };
+  }
+  
+  // Default general navigation
+  return {
+    title: "Page View",
+    subtitle: cleanPath,
+    icon: Activity,
+    gradient: "from-slate-500 to-slate-700",
+    bgColor: "bg-slate-500/10",
+    borderColor: "border-slate-500/30",
+    iconColor: "text-slate-400"
+  };
+};
 
 const formatDuration = (ms?: number) => {
   if (ms === undefined || ms === null) return "-";
@@ -55,7 +196,11 @@ const formatDuration = (ms?: number) => {
   return `${min}m ${remSec}s`;
 };
 
-export const ObservabilityClient = ({ initialLogs }: ObservabilityClientProps) => {
+export const ObservabilityClient = ({ 
+  initialLogs,
+  courseMap,
+  moduleMap
+}: ObservabilityClientProps) => {
   const [searchTerm, setSearchTerm] = useState("");
   const [eventTypeFilter, setEventTypeFilter] = useState("all");
   const [currentPage, setCurrentPage] = useState(1);
@@ -126,8 +271,41 @@ export const ObservabilityClient = ({ initialLogs }: ObservabilityClientProps) =
       }
     });
 
+    // Calculate transition fallback durations when exit logs are absent
+    nodes.forEach((node, idx) => {
+      if (node.durationMs === undefined || node.durationMs === null) {
+        const nextNode = nodes[idx + 1];
+        const entry = new Date(node.entryTime).getTime();
+        if (nextNode) {
+          const nextEntry = new Date(nextNode.entryTime).getTime();
+          node.durationMs = Math.max(0, nextEntry - entry);
+        } else {
+          // Last node
+          if (sessionTimelineLogs.length > 0) {
+            const lastLog = sessionTimelineLogs[sessionTimelineLogs.length - 1];
+            const lastTime = new Date(lastLog.timestamp).getTime();
+            node.durationMs = Math.max(0, lastTime - entry);
+          }
+        }
+      }
+      // Cap individual duration at 5 minutes to prevent idle skew
+      node.durationMs = Math.min(node.durationMs || 0, 300000);
+    });
+
     return nodes;
   }, [sessionTimelineLogs]);
+
+  const totalSessionMs = useMemo(() => {
+    if (sessionTimelineLogs.length === 0) return 1;
+    const firstTime = new Date(sessionTimelineLogs[0].timestamp).getTime();
+    const lastTime = new Date(sessionTimelineLogs[sessionTimelineLogs.length - 1].timestamp).getTime();
+    return Math.max(1000, lastTime - firstTime);
+  }, [sessionTimelineLogs]);
+
+  const totalTrackedMs = useMemo(() => {
+    const sum = pageNodes.reduce((acc, n) => acc + (n.durationMs || 0), 0);
+    return Math.max(1000, sum);
+  }, [pageNodes]);
 
   // Process data in-memory using useMemo
   const metrics = useMemo(() => {
@@ -677,221 +855,394 @@ export const ObservabilityClient = ({ initialLogs }: ObservabilityClientProps) =
       </div>
 
       {/* User Journey Flow Timeline Modal */}
-      {selectedSessionId && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-sm animate-in fade-in duration-200">
-          <div className="bg-[#1a2333] border border-slate-800 rounded-2xl w-full max-w-2xl max-h-[85vh] flex flex-col shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
-            {/* Modal Header */}
-            <div className="p-6 border-b border-slate-800 flex items-center justify-between bg-slate-900/50">
-              <div>
-                <h3 className="text-lg font-bold text-white flex items-center gap-x-2">
-                  <Activity className="h-5 w-5 text-sky-400 animate-pulse" />
-                  User Engagement Journey
-                </h3>
-                <p className="text-xs text-slate-400 mt-1 font-mono">
-                  Session: {selectedSessionId}
-                </p>
-              </div>
-              <button
-                onClick={() => setSelectedSessionId(null)}
-                className="text-xs text-slate-400 hover:text-white bg-slate-800 hover:bg-slate-700 px-3 py-1.5 rounded-lg transition cursor-pointer font-medium"
-              >
-                Close
-              </button>
-            </div>
+      {selectedSessionId && (() => {
+        const userEmail = sessionTimelineLogs.find(l => l.user_id?.email || l.metadata?.email)?.user_id?.email || 
+                          sessionTimelineLogs.find(l => l.user_id?.email || l.metadata?.email)?.metadata?.email || 
+                          "Anonymous Guest";
+        const avatarInitial = userEmail !== "Anonymous Guest" ? userEmail.charAt(0).toUpperCase() : "?";
+        
+        const firstUtmSource = sessionTimelineLogs.find(l => l.utm_source)?.utm_source;
+        const firstUtmCampaign = sessionTimelineLogs.find(l => l.utm_campaign)?.utm_campaign;
+        
+        const hasPurchased = sessionTimelineLogs.some(l => l.event_type === "purchase_success");
+        
+        const totalVideoMs = sessionTimelineLogs
+          .filter(l => l.event_type === "video_watch")
+          .reduce((acc, curr) => acc + (curr.metadata?.segmentMs || 0), 0);
 
-            {/* Modal Content - Scrollable Timeline */}
-            <div className="p-6 overflow-y-auto space-y-6 flex-1 bg-[#101726]">
-              {/* Session Meta Info */}
-              <div className="grid grid-cols-2 gap-4 bg-slate-900/40 p-4 rounded-xl border border-slate-800 text-xs">
+        return (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-sm animate-in fade-in duration-200">
+            <div className="bg-[#1a2333] border border-slate-800 rounded-2xl w-full max-w-5xl h-[85vh] flex flex-col shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
+              {/* Modal Header */}
+              <div className="p-6 border-b border-slate-800 flex items-center justify-between bg-slate-900/50">
                 <div>
-                  <span className="text-slate-400 block uppercase font-bold tracking-wider text-[10px] mb-0.5">User Email</span>
-                  <span className="text-white font-medium">
-                    {sessionTimelineLogs.find(l => l.user_id?.email || l.metadata?.email)?.user_id?.email || 
-                     sessionTimelineLogs.find(l => l.user_id?.email || l.metadata?.email)?.metadata?.email || 
-                     "Anonymous / Guest"}
-                  </span>
+                  <h3 className="text-lg font-bold text-white flex items-center gap-x-2">
+                    <Activity className="h-5 w-5 text-sky-400 animate-pulse" />
+                    User Engagement Journey
+                  </h3>
+                  <p className="text-xs text-slate-400 mt-1 font-mono">
+                    Session: {selectedSessionId}
+                  </p>
                 </div>
-                <div>
-                  <span className="text-slate-400 block uppercase font-bold tracking-wider text-[10px] mb-0.5">IP Address</span>
-                  <span className="text-white font-medium">{sessionTimelineLogs[0]?.ip_address || "-"}</span>
-                </div>
-                <div>
-                  <span className="text-slate-400 block uppercase font-bold tracking-wider text-[10px] mb-0.5">UTM Acquisition</span>
-                  <span className="text-white font-medium truncate block" title={sessionTimelineLogs.find(l => l.utm_source)?.utm_source || "Direct"}>
-                    {sessionTimelineLogs.find(l => l.utm_source)?.utm_source 
-                      ? `${sessionTimelineLogs.find(l => l.utm_source)?.utm_source} / ${sessionTimelineLogs.find(l => l.utm_source)?.utm_campaign || "none"}`
-                      : "Direct / Organic"}
-                  </span>
-                </div>
-                <div>
-                  <span className="text-slate-400 block uppercase font-bold tracking-wider text-[10px] mb-0.5">Referrer</span>
-                  <span className="text-white font-medium truncate block max-w-[200px]" title={sessionTimelineLogs.find(l => l.referrer)?.referrer || "None"}>
-                    {sessionTimelineLogs.find(l => l.referrer)?.referrer || "None"}
-                  </span>
-                </div>
-              </div>
-
-              {/* Tab Selector */}
-              <div className="flex bg-slate-900 p-1 rounded-xl border border-slate-800 gap-x-2">
                 <button
-                  onClick={() => setActiveTab("flow")}
-                  className={`flex-1 py-2 text-xs font-bold rounded-lg transition ${
-                    activeTab === "flow" 
-                      ? "bg-sky-500 text-white shadow-sm" 
-                      : "text-slate-400 hover:text-white"
-                  }`}
+                  onClick={() => setSelectedSessionId(null)}
+                  className="text-xs text-slate-400 hover:text-white bg-slate-800 hover:bg-slate-700 px-3 py-1.5 rounded-lg transition cursor-pointer font-medium"
                 >
-                  Visual Flow Diagram
-                </button>
-                <button
-                  onClick={() => setActiveTab("audit")}
-                  className={`flex-1 py-2 text-xs font-bold rounded-lg transition ${
-                    activeTab === "audit" 
-                      ? "bg-sky-500 text-white shadow-sm" 
-                      : "text-slate-400 hover:text-white"
-                  }`}
-                >
-                  Raw Chronological Log
+                  Close
                 </button>
               </div>
 
-              {activeTab === "flow" ? (
-                <div className="space-y-4 py-2">
-                  {pageNodes.map((node, idx) => (
-                    <div key={idx} className="flex flex-col items-center">
-                      {/* Node Card */}
-                      <div className="w-full bg-[#1b253b]/80 border border-slate-800/80 hover:border-slate-700/80 rounded-xl p-5 shadow-md transition">
-                        <div className="flex items-start justify-between">
-                          <div className="space-y-1">
-                            <span className="text-[10px] uppercase font-bold tracking-wider text-slate-500">
-                              Step {idx + 1}: Page View
-                            </span>
-                            <h4 className="text-sm font-semibold text-sky-400 font-mono break-all">
-                              {node.path}
-                            </h4>
-                          </div>
-                          {node.durationMs !== undefined && (
-                            <div className="flex items-center gap-x-1.5 bg-slate-800/80 px-2.5 py-1 rounded-lg border border-slate-700/50 text-[10px] text-slate-300 font-bold">
-                              <Clock className="h-3 w-3 text-sky-400" />
-                              {formatDuration(node.durationMs)}
-                            </div>
-                          )}
-                        </div>
-
-                        {/* Micro-events inside this page node */}
-                        {node.events.length > 0 && (
-                          <div className="mt-4 pt-3 border-t border-slate-800/80 space-y-2">
-                            <span className="text-[9px] uppercase font-black tracking-widest text-slate-500 block">
-                              Page Activities
-                            </span>
-                            <div className="flex flex-wrap gap-2">
-                              {node.events.map((evt, eIdx) => {
-                                let badge = "bg-slate-800 text-slate-400 border border-slate-750";
-                                if (evt.type === "video_watch") badge = "bg-amber-500/10 text-amber-400 border border-amber-500/20";
-                                else if (evt.type === "checkout_start") badge = "bg-sky-500/10 text-sky-400 border border-sky-500/20";
-                                else if (evt.type === "purchase_success") badge = "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20";
-                                else if (evt.type === "login_success" || evt.type === "signup_success") badge = "bg-indigo-500/10 text-indigo-400 border border-indigo-500/20";
-
-                                return (
-                                  <span key={eIdx} className={`px-2 py-1 rounded text-[10px] font-bold ${badge} flex items-center gap-x-1`}>
-                                    {evt.label}
-                                  </span>
-                                );
-                              })}
-                            </div>
-                          </div>
-                        )}
+              {/* Modal Body - Two Column Grid on Desktop */}
+              <div className="grid grid-cols-1 lg:grid-cols-3 flex-1 overflow-hidden">
+                {/* Left Column: Sticky Session Metadata (1 Column) */}
+                <div className="p-6 border-b lg:border-b-0 lg:border-r border-slate-800 bg-[#0e1524]/60 overflow-y-auto space-y-6 flex flex-col justify-between">
+                  <div className="space-y-6">
+                    {/* User Profile Info */}
+                    <div className="flex flex-col items-center text-center space-y-3 pb-6 border-b border-slate-800">
+                      <div className="w-16 h-16 rounded-2xl flex items-center justify-center text-2xl font-bold bg-gradient-to-tr from-sky-500 to-indigo-600 shadow-md text-white border-2 border-slate-700/50">
+                        {avatarInitial}
                       </div>
+                      <div>
+                        <h4 className="text-sm font-semibold text-white max-w-[220px] truncate" title={userEmail}>
+                          {userEmail}
+                        </h4>
+                        <p className="text-[10px] text-slate-400 uppercase tracking-widest mt-0.5">
+                          {userEmail === "Anonymous Guest" ? "Guest Visitor" : "Registered User"}
+                        </p>
+                      </div>
+                    </div>
 
-                      {/* Connector SVG Arrow */}
-                      {idx < pageNodes.length - 1 && (
-                        <div className="flex flex-col items-center my-3 group">
-                          <div className="h-6 w-0.5 bg-gradient-to-b from-sky-500 to-indigo-500 opacity-60 group-hover:opacity-100 transition" />
-                          <svg className="w-4 h-4 text-indigo-400 -mt-0.5 animate-bounce" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M19 13l-7 7-7-7" />
-                          </svg>
+                    {/* Session Core Metrics Card Grid */}
+                    <div className="space-y-4">
+                      <h5 className="text-[10px] uppercase font-black tracking-wider text-slate-500">
+                        Session Statistics
+                      </h5>
+                      <div className="grid grid-cols-2 gap-3">
+                        <div className="bg-slate-900/50 p-3 rounded-xl border border-slate-800/85">
+                          <span className="text-[9px] text-slate-500 uppercase font-bold tracking-wider block">Duration</span>
+                          <span className="text-xs font-semibold text-white mt-1 flex items-center gap-1">
+                            <Clock className="h-3 w-3 text-sky-400" />
+                            {formatDuration(totalSessionMs)}
+                          </span>
+                        </div>
+                        <div className="bg-slate-900/50 p-3 rounded-xl border border-slate-800/85">
+                          <span className="text-[9px] text-slate-500 uppercase font-bold tracking-wider block">Pageviews</span>
+                          <span className="text-xs font-semibold text-white mt-1 flex items-center gap-1">
+                            <BookOpen className="h-3 w-3 text-indigo-400" />
+                            {pageNodes.length} pages
+                          </span>
+                        </div>
+                        <div className="bg-slate-900/50 p-3 rounded-xl border border-slate-800/85">
+                          <span className="text-[9px] text-slate-500 uppercase font-bold tracking-wider block">Total Events</span>
+                          <span className="text-xs font-semibold text-white mt-1 flex items-center gap-1">
+                            <Activity className="h-3 w-3 text-pink-400" />
+                            {sessionTimelineLogs.length} events
+                          </span>
+                        </div>
+                        <div className="bg-slate-900/50 p-3 rounded-xl border border-slate-800/85">
+                          <span className="text-[9px] text-slate-500 uppercase font-bold tracking-wider block">Video Time</span>
+                          <span className="text-xs font-semibold text-white mt-1 flex items-center gap-1">
+                            <Video className="h-3 w-3 text-amber-400" />
+                            {totalVideoMs > 0 ? formatDuration(totalVideoMs) : "0s"}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Network / Context Details */}
+                    <div className="space-y-3 pt-2">
+                      <h5 className="text-[10px] uppercase font-black tracking-wider text-slate-500">
+                        Network & UTM Source
+                      </h5>
+                      <div className="space-y-2 bg-slate-900/30 p-3 rounded-xl border border-slate-800/50 text-xs">
+                        <div className="flex items-center justify-between">
+                          <span className="text-slate-400 text-[11px] flex items-center gap-1">
+                            <Globe className="h-3 w-3 text-slate-500" /> IP Address
+                          </span>
+                          <span className="text-white font-medium font-mono text-[11px] truncate max-w-[140px]" title={sessionTimelineLogs[0]?.ip_address || "Unknown"}>
+                            {sessionTimelineLogs[0]?.ip_address || "Unknown"}
+                          </span>
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <span className="text-slate-400 text-[11px] flex items-center gap-1">
+                            <Compass className="h-3 w-3 text-slate-500" /> Acquisition
+                          </span>
+                          <span className="text-white font-medium text-[11px] truncate max-w-[140px]" title={firstUtmSource ? `${firstUtmSource} / ${firstUtmCampaign || "none"}` : "Direct / Organic"}>
+                            {firstUtmSource ? `${firstUtmSource} / ${firstUtmCampaign || "none"}` : "Direct / Organic"}
+                          </span>
+                        </div>
+                        <div className="flex flex-col space-y-0.5 mt-2 border-t border-slate-800/80 pt-2">
+                          <span className="text-slate-500 text-[9px] uppercase font-bold tracking-wider block">Referrer</span>
+                          <span className="text-white text-[10px] truncate block" title={sessionTimelineLogs.find(l => l.referrer)?.referrer || "Direct / Bookmark Entry"}>
+                            {sessionTimelineLogs.find(l => l.referrer)?.referrer || "Direct / Bookmark Entry"}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Conversion Summary status card */}
+                  <div className="pt-6 border-t border-slate-800 mt-auto">
+                    <div className={`p-4 rounded-xl border flex items-center justify-between ${
+                      hasPurchased 
+                        ? "bg-emerald-500/10 border-emerald-500/20 text-emerald-400 shadow-[0_0_12px_rgba(16,185,129,0.05)]"
+                        : "bg-slate-900/60 border-slate-800 text-slate-400"
+                    }`}>
+                      <div className="space-y-0.5">
+                        <span className="text-[9px] uppercase font-black tracking-wider block text-slate-500">Goal Status</span>
+                        <span className="text-xs font-bold text-white">
+                          {hasPurchased ? "Course Enrolled" : "No Enrolled Courses"}
+                        </span>
+                      </div>
+                      {hasPurchased ? (
+                        <div className="p-2 rounded-lg bg-emerald-500/20 text-emerald-300">
+                          <Sparkles className="h-4 w-4 animate-bounce" />
+                        </div>
+                      ) : (
+                        <div className="p-2 rounded-lg bg-slate-800 text-slate-500">
+                          <CreditCard className="h-4 w-4" />
                         </div>
                       )}
                     </div>
-                  ))}
+                  </div>
                 </div>
-              ) : (
-                /* Timeline Container */
-                <div className="relative pl-6 border-l-2 border-slate-800 space-y-6 py-2">
-                  {sessionTimelineLogs.map((log) => {
-                    let badgeColor = "bg-slate-800 text-slate-400 border border-slate-700/50";
-                    let dotColor = "bg-slate-700 ring-slate-800";
-                    let icon = "📄";
-                    let details = null;
 
-                    if (log.event_type === "session_start") {
-                      badgeColor = "bg-pink-500/10 text-pink-400 border border-pink-500/20";
-                      dotColor = "bg-pink-500 ring-pink-500/30";
-                      icon = "🚀";
-                    } else if (log.event_type === "page_view") {
-                      badgeColor = "bg-blue-500/10 text-blue-400 border border-blue-500/20";
-                      dotColor = "bg-blue-500 ring-blue-500/30";
-                      icon = "👁️";
-                    } else if (log.event_type === "page_exit") {
-                      badgeColor = "bg-slate-600/10 text-slate-400 border border-slate-600/20";
-                      dotColor = "bg-slate-600 ring-slate-600/30";
-                      icon = "🚪";
-                      details = `Spent ${formatDuration(log.duration_ms)}`;
-                    } else if (log.event_type === "login_success" || log.event_type === "signup_success") {
-                      badgeColor = "bg-indigo-500/10 text-indigo-400 border border-indigo-500/20";
-                      dotColor = "bg-indigo-500 ring-indigo-500/30";
-                      icon = "🔐";
-                      details = `Logged in via ${log.metadata?.method || "email"}`;
-                    } else if (log.event_type === "checkout_start") {
-                      badgeColor = "bg-sky-500/10 text-sky-400 border border-sky-500/20";
-                      dotColor = "bg-sky-500 ring-sky-500/30";
-                      icon = "🛒";
-                      details = `Started checkout process`;
-                    } else if (log.event_type === "purchase_success") {
-                      badgeColor = "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20";
-                      dotColor = "bg-emerald-500 ring-emerald-500/30";
-                      icon = "💰";
-                      details = `Completed checkout purchase successfully`;
-                    } else if (log.event_type === "video_watch") {
-                      badgeColor = "bg-amber-500/10 text-amber-400 border border-amber-500/20";
-                      dotColor = "bg-amber-500 ring-amber-500/30";
-                      icon = "🎥";
-                      details = `Watched video for ${formatDuration(log.metadata?.segmentMs)}`;
-                    }
+                {/* Right Column: Visual Journey Flow Timeline / Raw Logs (2 Columns) */}
+                <div className="p-6 overflow-y-auto space-y-6 flex-1 bg-[#101726] lg:col-span-2">
+                  {/* Tab Selector */}
+                  <div className="flex bg-slate-900 p-1 rounded-xl border border-slate-800 gap-x-2">
+                    <button
+                      onClick={() => setActiveTab("flow")}
+                      className={`flex-1 py-2 text-xs font-bold rounded-lg transition flex items-center justify-center gap-1.5 ${
+                        activeTab === "flow" 
+                          ? "bg-sky-500 text-white shadow-md" 
+                          : "text-slate-400 hover:text-white"
+                      }`}
+                    >
+                      <Compass className="h-3.5 w-3.5" />
+                      Visual Flow Diagram
+                    </button>
+                    <button
+                      onClick={() => setActiveTab("audit")}
+                      className={`flex-1 py-2 text-xs font-bold rounded-lg transition flex items-center justify-center gap-1.5 ${
+                        activeTab === "audit" 
+                          ? "bg-sky-500 text-white shadow-md" 
+                          : "text-slate-400 hover:text-white"
+                      }`}
+                    >
+                      <Activity className="h-3.5 w-3.5" />
+                      Raw Chronological Log
+                    </button>
+                  </div>
 
-                    return (
-                      <div key={log.id} className="relative group">
-                        {/* Timeline Dot */}
-                        <span className={`absolute -left-[31px] top-1.5 flex h-4 w-4 items-center justify-center rounded-full ${dotColor} ring-4`} />
-                        
-                        {/* Event Details Card */}
-                        <div className="bg-slate-900/40 border border-slate-800/80 hover:border-slate-700/80 p-4 rounded-xl transition">
-                          <div className="flex flex-wrap items-center justify-between gap-2">
-                            <div className="flex items-center gap-x-2">
-                              <span className="text-sm">{icon}</span>
-                              <span className={`text-[10px] font-bold uppercase px-2 py-0.5 rounded ${badgeColor}`}>
-                                {log.event_type.replace("_", " ")}
-                              </span>
+                  {activeTab === "flow" ? (
+                    <div className="relative pl-10 space-y-8 py-2">
+                      {/* Glowing Vertical line */}
+                      <div className="absolute left-[26px] top-4 bottom-4 w-0.5 bg-gradient-to-b from-blue-500 via-indigo-500 to-purple-500 opacity-20" />
+                      
+                      {pageNodes.map((node, idx) => {
+                        const pathMeta = getCleanPathLabel(node.path, courseMap, moduleMap);
+                        const IconComponent = pathMeta.icon;
+                        const durationPct = Math.round(((node.durationMs || 0) / totalTrackedMs) * 100);
+
+                        return (
+                          <div key={idx} className="relative group">
+                            {/* Circle step index on the track */}
+                            <div className={`absolute -left-[32px] top-5 w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold border-2 bg-[#0e1726] ${pathMeta.iconColor} ring-4 ring-[#101726] border-current shadow-md transition-transform group-hover:scale-110 duration-200 z-10`}>
+                              {String(idx + 1).padStart(2, "0")}
                             </div>
-                            <span className="text-[10px] text-slate-500">
-                              {new Date(log.timestamp).toLocaleTimeString()}
-                            </span>
+                            
+                            {/* Node Card */}
+                            <div className="w-full bg-[#1b253b]/50 border border-slate-800 hover:border-slate-700/80 rounded-2xl p-5 shadow-lg relative overflow-hidden transition-all duration-300 hover:shadow-indigo-500/5">
+                              {/* Accent Gradient Border */}
+                              <div className={`absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b ${pathMeta.gradient}`} />
+                              
+                              <div className="flex items-start justify-between gap-4">
+                                <div className="flex items-start">
+                                  <div className={`p-2.5 rounded-xl ${pathMeta.bgColor} border ${pathMeta.borderColor} mr-3 mt-0.5`}>
+                                    <IconComponent className={`h-5 w-5 ${pathMeta.iconColor}`} />
+                                  </div>
+                                  <div>
+                                    <h4 className="text-sm font-bold text-white group-hover:text-indigo-300 transition-colors">
+                                      {pathMeta.title}
+                                    </h4>
+                                    <p className="text-xs text-slate-400 mt-0.5">
+                                      {pathMeta.subtitle}
+                                    </p>
+                                    <p className="text-[10px] text-slate-500 font-mono mt-1.5 break-all bg-slate-900/40 px-2 py-0.5 rounded border border-slate-850 inline-block">
+                                      {node.path}
+                                    </p>
+                                  </div>
+                                </div>
+                                
+                                <div className="flex flex-col items-end text-right shrink-0">
+                                  {node.durationMs !== undefined && (
+                                    <div className="flex items-center gap-x-1 bg-slate-800/60 px-2 py-1 rounded-lg border border-slate-700/50 text-[10px] text-slate-300 font-semibold shadow-sm">
+                                      <Clock className="h-3 w-3 text-slate-400" />
+                                      {formatDuration(node.durationMs)}
+                                    </div>
+                                  )}
+                                  <span className="text-[10px] text-slate-500 mt-1.5 font-medium">
+                                    Entered: {new Date(node.entryTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+                                  </span>
+                                </div>
+                              </div>
+
+                              {/* Session Share Progress Bar */}
+                              {node.durationMs !== undefined && (
+                                <div className="mt-4 space-y-1">
+                                  <div className="flex items-center justify-between text-[10px] text-slate-400">
+                                    <span>Session Share</span>
+                                    <span className="font-semibold text-white">
+                                      {durationPct}%
+                                    </span>
+                                  </div>
+                                  <div className="h-1.5 w-full bg-slate-850 rounded-full overflow-hidden">
+                                    <div 
+                                      className={`h-full bg-gradient-to-r ${pathMeta.gradient} rounded-full transition-all duration-500`}
+                                      style={{ width: `${Math.max(2, Math.min(100, durationPct))}%` }}
+                                    />
+                                  </div>
+                                </div>
+                              )}
+
+                              {/* Micro activities inside this page node */}
+                              {node.events.length > 0 && (
+                                <div className="mt-5 pt-4 border-t border-slate-800/60 space-y-3">
+                                  <h5 className="text-[10px] uppercase font-black tracking-wider text-slate-500">
+                                    Activity Timeline
+                                  </h5>
+                                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                    {node.events.map((evt, eIdx) => {
+                                      let EvtIcon = Activity;
+                                      let themeClass = "text-slate-400 bg-slate-850/40 border-slate-800 hover:border-slate-700";
+                                      
+                                      if (evt.type === "video_watch") {
+                                        EvtIcon = Play;
+                                        themeClass = "text-amber-400 bg-amber-500/5 border-amber-500/10 hover:border-amber-500/30";
+                                      } else if (evt.type === "checkout_start") {
+                                        EvtIcon = CreditCard;
+                                        themeClass = "text-sky-400 bg-sky-500/5 border-sky-500/10 hover:border-sky-500/30";
+                                      } else if (evt.type === "purchase_success") {
+                                        EvtIcon = Sparkles;
+                                        themeClass = "text-emerald-400 bg-emerald-500/5 border-emerald-500/10 hover:border-emerald-500/30 shadow-[0_0_12px_rgba(16,185,129,0.05)]";
+                                      } else if (evt.type === "login_success" || evt.type === "signup_success") {
+                                        EvtIcon = UserCheck;
+                                        themeClass = "text-indigo-400 bg-indigo-500/5 border-indigo-500/10 hover:border-indigo-500/30";
+                                      }
+                                      
+                                      const entryMs = new Date(node.entryTime).getTime();
+                                      const evtMs = new Date(evt.time).getTime();
+                                      const offsetMs = Math.max(0, evtMs - entryMs);
+                                      const offsetLabel = offsetMs === 0 ? "at entry" : `+${formatDuration(offsetMs)}`;
+
+                                      return (
+                                        <div 
+                                          key={eIdx} 
+                                          className={`flex items-center p-3 rounded-xl border ${themeClass} transition-all duration-200 hover:scale-[1.01]`}
+                                        >
+                                          <div className="p-2 rounded-lg bg-slate-900/60 border border-slate-800 mr-3">
+                                            <EvtIcon className="h-4 w-4" />
+                                          </div>
+                                          <div className="flex-1 min-w-0">
+                                            <p className="text-xs font-semibold text-white truncate">
+                                              {evt.label}
+                                            </p>
+                                            <p className="text-[10px] text-slate-400 flex items-center gap-1 mt-0.5">
+                                              <Clock className="h-2.5 w-2.5 text-slate-500" />
+                                              {offsetLabel}
+                                            </p>
+                                          </div>
+                                        </div>
+                                      );
+                                    })}
+                                  </div>
+                                </div>
+                              )}
+                            </div>
                           </div>
-                          
-                          <div className="mt-2 text-xs font-mono text-sky-400 break-all">{log.pathname}</div>
-                          {details && (
-                            <div className="mt-1 text-xs text-slate-300 font-medium">{details}</div>
-                          )}
-                        </div>
-                      </div>
-                    );
-                  })}
+                        );
+                      })}
+                    </div>
+                  ) : (
+                    /* Timeline Container */
+                    <div className="relative pl-6 border-l-2 border-slate-800 space-y-6 py-2">
+                      {sessionTimelineLogs.map((log) => {
+                        let badgeColor = "bg-slate-800 text-slate-400 border border-slate-700/50";
+                        let dotColor = "bg-slate-700 ring-slate-800";
+                        let icon = "📄";
+                        let details = null;
+
+                        if (log.event_type === "session_start") {
+                          badgeColor = "bg-pink-500/10 text-pink-400 border border-pink-500/20";
+                          dotColor = "bg-pink-500 ring-pink-500/30";
+                          icon = "🚀";
+                        } else if (log.event_type === "page_view") {
+                          badgeColor = "bg-blue-500/10 text-blue-400 border border-blue-500/20";
+                          dotColor = "bg-blue-500 ring-blue-500/30";
+                          icon = "👁️";
+                        } else if (log.event_type === "page_exit") {
+                          badgeColor = "bg-slate-600/10 text-slate-400 border border-slate-600/20";
+                          dotColor = "bg-slate-600 ring-slate-600/30";
+                          icon = "🚪";
+                          details = `Spent ${formatDuration(log.duration_ms)}`;
+                        } else if (log.event_type === "login_success" || log.event_type === "signup_success") {
+                          badgeColor = "bg-indigo-500/10 text-indigo-400 border border-indigo-500/20";
+                          dotColor = "bg-indigo-500 ring-indigo-500/30";
+                          icon = "🔐";
+                          details = `Logged in via ${log.metadata?.method || "email"}`;
+                        } else if (log.event_type === "checkout_start") {
+                          badgeColor = "bg-sky-500/10 text-sky-400 border border-sky-500/20";
+                          dotColor = "bg-sky-500 ring-sky-500/30";
+                          icon = "🛒";
+                          details = `Started checkout process`;
+                        } else if (log.event_type === "purchase_success") {
+                          badgeColor = "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20";
+                          dotColor = "bg-emerald-500 ring-emerald-500/30";
+                          icon = "💰";
+                          details = `Completed checkout purchase successfully`;
+                        } else if (log.event_type === "video_watch") {
+                          badgeColor = "bg-amber-500/10 text-amber-400 border border-amber-500/20";
+                          dotColor = "bg-amber-500 ring-amber-500/30";
+                          icon = "🎥";
+                          details = `Watched video for ${formatDuration(log.metadata?.segmentMs)}`;
+                        }
+
+                        return (
+                          <div key={log.id} className="relative group">
+                            {/* Timeline Dot */}
+                            <span className={`absolute -left-[31px] top-1.5 flex h-4 w-4 items-center justify-center rounded-full ${dotColor} ring-4`} />
+                            
+                            {/* Event Details Card */}
+                            <div className="bg-slate-900/40 border border-slate-800/80 hover:border-slate-700/80 p-4 rounded-xl transition">
+                              <div className="flex flex-wrap items-center justify-between gap-2">
+                                <div className="flex items-center gap-x-2">
+                                  <span className="text-sm">{icon}</span>
+                                  <span className={`text-[10px] font-bold uppercase px-2 py-0.5 rounded ${badgeColor}`}>
+                                    {log.event_type.replace("_", " ")}
+                                  </span>
+                                </div>
+                                <span className="text-[10px] text-slate-500 font-medium">
+                                  {new Date(log.timestamp).toLocaleTimeString()}
+                                </span>
+                              </div>
+                              
+                              <div className="mt-2 text-xs font-mono text-sky-400 break-all">{log.pathname}</div>
+                              {details && (
+                                <div className="mt-1 text-xs text-slate-350 font-medium">{details}</div>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
                 </div>
-              )}
+              </div>
             </div>
           </div>
-        </div>
-      )}
+        );
+      })()}
     </div>
   );
 };

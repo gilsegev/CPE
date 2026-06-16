@@ -26,6 +26,29 @@ export default async function ObservabilityPage() {
     })
   );
 
+  // Fetch all courses and modules to resolve IDs to names in visitor flow maps
+  const courses = await db.request(
+    readItems("Courses", {
+      fields: ["id", "title"],
+    })
+  );
+
+  const modules = await db.request(
+    readItems("Modules", {
+      fields: ["id", "title"],
+    })
+  );
+
+  const courseMap: Record<string, string> = {};
+  courses.forEach((c) => {
+    courseMap[c.id] = c.title;
+  });
+
+  const moduleMap: Record<string, string> = {};
+  modules.forEach((m) => {
+    moduleMap[m.id] = m.title;
+  });
+
   return (
     <div className="min-h-screen bg-slate-900 text-slate-100 p-6 md:p-8">
       <div className="max-w-7xl mx-auto space-y-8">
@@ -38,7 +61,11 @@ export default async function ObservabilityPage() {
           </p>
         </div>
 
-        <ObservabilityClient initialLogs={logs as any[]} />
+        <ObservabilityClient 
+          initialLogs={logs as any[]} 
+          courseMap={courseMap}
+          moduleMap={moduleMap}
+        />
       </div>
     </div>
   );
