@@ -46,6 +46,15 @@ interface ObservabilityClientProps {
   initialLogs: Log[];
 }
 
+const formatDuration = (ms?: number) => {
+  if (ms === undefined || ms === null) return "-";
+  const sec = ms / 1000;
+  if (sec < 60) return `${sec.toFixed(1)}s`;
+  const min = Math.floor(sec / 60);
+  const remSec = Math.round(sec % 60);
+  return `${min}m ${remSec}s`;
+};
+
 export const ObservabilityClient = ({ initialLogs }: ObservabilityClientProps) => {
   const [searchTerm, setSearchTerm] = useState("");
   const [eventTypeFilter, setEventTypeFilter] = useState("all");
@@ -274,15 +283,6 @@ export const ObservabilityClient = ({ initialLogs }: ObservabilityClientProps) =
     const startIndex = (currentPage - 1) * itemsPerPage;
     return filteredLogs.slice(startIndex, startIndex + itemsPerPage);
   }, [filteredLogs, currentPage]);
-
-  const formatDuration = (ms?: number) => {
-    if (ms === undefined || ms === null) return "-";
-    const sec = ms / 1000;
-    if (sec < 60) return `${sec.toFixed(1)}s`;
-    const min = Math.floor(sec / 60);
-    const remSec = Math.round(sec % 60);
-    return `${min}m ${remSec}s`;
-  };
 
   return (
     <div className="space-y-8">
