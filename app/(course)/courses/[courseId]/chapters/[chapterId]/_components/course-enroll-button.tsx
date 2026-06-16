@@ -33,7 +33,7 @@ export const CourseEnrollButton = ({
 
     try {
       setIsLoading(true);
-      logEvent("checkout_start", { courseId, price });
+      await logEvent("checkout_start", { courseId, price });
 
       const response = await axios.post(`/api/courses/${courseId}/checkout`)
 

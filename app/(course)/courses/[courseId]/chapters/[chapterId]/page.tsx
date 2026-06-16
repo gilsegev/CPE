@@ -1,4 +1,5 @@
 import { getCurrentUser } from "@/lib/auth";
+import { logServerEvent } from "@/lib/observability";
 import { redirect } from "next/navigation";
 import { File, Lock, ArrowRight } from "lucide-react";
 import Link from "next/link";
@@ -45,6 +46,16 @@ const ChapterIdPage = async ({
 
   if (!chapter || !course) {
     return redirect("/")
+  }
+
+  if (searchParams.success === "1" && userId) {
+    // Log server-side purchase success event to ensure it is always logged even if verification is fast
+    await logServerEvent(
+      "purchase_success",
+      `/courses/${params.courseId}/chapters/${params.chapterId}`,
+      { courseId: params.courseId },
+      userId
+    );
   }
 
   // Fetch initial Quiz Data if chapter is a quiz and unlocked

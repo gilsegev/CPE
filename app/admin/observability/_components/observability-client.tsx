@@ -50,7 +50,75 @@ export const ObservabilityClient = ({ initialLogs }: ObservabilityClientProps) =
   const [searchTerm, setSearchTerm] = useState("");
   const [eventTypeFilter, setEventTypeFilter] = useState("all");
   const [currentPage, setCurrentPage] = useState(1);
+  const [selectedSessionId, setSelectedSessionId] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<"flow" | "audit">("flow");
   const itemsPerPage = 15;
+
+  const sessionTimelineLogs = useMemo(() => {
+    if (!selectedSessionId) return [];
+    return initialLogs
+      .filter((l) => l.session_id === selectedSessionId)
+      .sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
+  }, [initialLogs, selectedSessionId]);
+
+  const pageNodes = useMemo(() => {
+    const nodes: Array<{
+      path: string;
+      entryTime: string;
+      exitTime?: string;
+      durationMs?: number;
+      events: Array<{ type: string; label: string; time: string; metadata?: any }>;
+    }> = [];
+
+    let currentNode: typeof nodes[0] | null = null;
+
+    sessionTimelineLogs.forEach((log) => {
+      if (log.event_type === "page_view" || log.event_type === "session_start") {
+        currentNode = {
+          path: log.pathname || "/",
+          entryTime: log.timestamp,
+          events: [],
+        };
+        nodes.push(currentNode);
+      } else if (log.event_type === "page_exit") {
+        if (currentNode) {
+          currentNode.exitTime = log.timestamp;
+          currentNode.durationMs = log.duration_ms;
+        }
+      } else {
+        if (!currentNode) {
+          currentNode = {
+            path: log.pathname || "/",
+            entryTime: log.timestamp,
+            events: [],
+          };
+          nodes.push(currentNode);
+        }
+        
+        let label = log.event_type.replace("_", " ");
+        if (log.event_type === "video_watch") {
+          label = `Watched Video (${formatDuration(log.metadata?.segmentMs)})`;
+        } else if (log.event_type === "login_success") {
+          label = `Signed In (${log.metadata?.email || "Google"})`;
+        } else if (log.event_type === "signup_success") {
+          label = `Registered (${log.metadata?.email || "Email"})`;
+        } else if (log.event_type === "checkout_start") {
+          label = `Clicked Enroll (Price: $${log.metadata?.price || "0"})`;
+        } else if (log.event_type === "purchase_success") {
+          label = `Completed Purchase`;
+        }
+
+        currentNode.events.push({
+          type: log.event_type,
+          label,
+          time: log.timestamp,
+          metadata: log.metadata,
+        });
+      }
+    });
+
+    return nodes;
+  }, [sessionTimelineLogs]);
 
   // Process data in-memory using useMemo
   const metrics = useMemo(() => {
@@ -153,7 +221,9 @@ export const ObservabilityClient = ({ initialLogs }: ObservabilityClientProps) =
         if (!pageTimeMap[cleanPath]) {
           pageTimeMap[cleanPath] = { path: cleanPath, totalMs: 0, count: 0 };
         }
-        pageTimeMap[cleanPath].totalMs += log.duration_ms;
+        // Cap individual page duration at 5 minutes (300,000 ms) to prevent backgrounded tabs from skewing metrics
+        const duration = Math.min(log.duration_ms, 300000);
+        pageTimeMap[cleanPath].totalMs += duration;
         pageTimeMap[cleanPath].count += 1;
       }
     });
@@ -417,9 +487,21 @@ export const ObservabilityClient = ({ initialLogs }: ObservabilityClientProps) =
                 {metrics.conversions.map((conv, idx) => (
                   <tr key={idx} className="hover:bg-slate-800/30">
                     <td className="p-4 font-mono text-slate-400 text-xs">
-                      {conv.sessionId.substring(0, 8)}...{conv.sessionId.substring(conv.sessionId.length - 6)}
+                      <button
+                        onClick={() => setSelectedSessionId(conv.sessionId)}
+                        className="hover:underline text-sky-400 font-semibold focus:outline-none text-left"
+                      >
+                        {conv.sessionId.substring(0, 8)}...{conv.sessionId.substring(conv.sessionId.length - 6)}
+                      </button>
                     </td>
-                    <td className="p-4 font-medium text-white">{conv.email}</td>
+                    <td className="p-4 font-medium text-white">
+                      <button
+                        onClick={() => setSelectedSessionId(conv.sessionId)}
+                        className="hover:underline text-sky-400 font-semibold focus:outline-none text-left text-xs"
+                      >
+                        {conv.email}
+                      </button>
+                    </td>
                     <td className="p-4">{conv.utmSource}</td>
                     <td className="p-4">{conv.utmCampaign}</td>
                     <td className="p-4 text-emerald-400 font-semibold">{conv.timeToConvertMin} min</td>
@@ -522,12 +604,36 @@ export const ObservabilityClient = ({ initialLogs }: ObservabilityClientProps) =
                       </td>
                       <td className="p-4 font-mono text-xs max-w-xs truncate text-sky-400">{log.pathname}</td>
                       <td className="p-4 font-mono text-slate-400 text-xs">
-                        {log.session_id.substring(0, 8)}...
+                        <button
+                          onClick={() => setSelectedSessionId(log.session_id)}
+                          className="hover:underline text-sky-400 font-semibold focus:outline-none text-left"
+                        >
+                          {log.session_id.substring(0, 8)}...
+                        </button>
                       </td>
                       <td className="p-4 text-xs text-slate-300 truncate max-w-[180px]" title={log.user_id?.email || log.metadata?.email || "Anonymous"}>
-                        {log.user_id?.email || log.metadata?.email || "-"}
+                        {log.user_id?.email || log.metadata?.email ? (
+                          <button
+                            onClick={() => setSelectedSessionId(log.session_id)}
+                            className="hover:underline text-sky-400 font-semibold focus:outline-none text-left"
+                          >
+                            {log.user_id?.email || log.metadata?.email}
+                          </button>
+                        ) : (
+                          "-"
+                        )}
                       </td>
-                      <td className="p-4 text-xs">{log.ip_address || "Unknown"}</td>
+                      <td className="p-4 text-xs">
+                        <button
+                          onClick={() => {
+                            setSelectedSessionId(log.session_id);
+                            setActiveTab("flow");
+                          }}
+                          className="hover:underline text-sky-400 font-semibold focus:outline-none text-left"
+                        >
+                          {log.ip_address || "Unknown"}
+                        </button>
+                      </td>
                       <td className="p-4 text-xs text-slate-400">
                         {log.utm_source ? `${log.utm_source} / ${log.utm_campaign || "none"}` : "-"}
                       </td>
@@ -569,6 +675,223 @@ export const ObservabilityClient = ({ initialLogs }: ObservabilityClientProps) =
           </div>
         )}
       </div>
+
+      {/* User Journey Flow Timeline Modal */}
+      {selectedSessionId && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="bg-[#1a2333] border border-slate-800 rounded-2xl w-full max-w-2xl max-h-[85vh] flex flex-col shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
+            {/* Modal Header */}
+            <div className="p-6 border-b border-slate-800 flex items-center justify-between bg-slate-900/50">
+              <div>
+                <h3 className="text-lg font-bold text-white flex items-center gap-x-2">
+                  <Activity className="h-5 w-5 text-sky-400 animate-pulse" />
+                  User Engagement Journey
+                </h3>
+                <p className="text-xs text-slate-400 mt-1 font-mono">
+                  Session: {selectedSessionId}
+                </p>
+              </div>
+              <button
+                onClick={() => setSelectedSessionId(null)}
+                className="text-xs text-slate-400 hover:text-white bg-slate-800 hover:bg-slate-700 px-3 py-1.5 rounded-lg transition cursor-pointer font-medium"
+              >
+                Close
+              </button>
+            </div>
+
+            {/* Modal Content - Scrollable Timeline */}
+            <div className="p-6 overflow-y-auto space-y-6 flex-1 bg-[#101726]">
+              {/* Session Meta Info */}
+              <div className="grid grid-cols-2 gap-4 bg-slate-900/40 p-4 rounded-xl border border-slate-800 text-xs">
+                <div>
+                  <span className="text-slate-400 block uppercase font-bold tracking-wider text-[10px] mb-0.5">User Email</span>
+                  <span className="text-white font-medium">
+                    {sessionTimelineLogs.find(l => l.user_id?.email || l.metadata?.email)?.user_id?.email || 
+                     sessionTimelineLogs.find(l => l.user_id?.email || l.metadata?.email)?.metadata?.email || 
+                     "Anonymous / Guest"}
+                  </span>
+                </div>
+                <div>
+                  <span className="text-slate-400 block uppercase font-bold tracking-wider text-[10px] mb-0.5">IP Address</span>
+                  <span className="text-white font-medium">{sessionTimelineLogs[0]?.ip_address || "-"}</span>
+                </div>
+                <div>
+                  <span className="text-slate-400 block uppercase font-bold tracking-wider text-[10px] mb-0.5">UTM Acquisition</span>
+                  <span className="text-white font-medium truncate block" title={sessionTimelineLogs.find(l => l.utm_source)?.utm_source || "Direct"}>
+                    {sessionTimelineLogs.find(l => l.utm_source)?.utm_source 
+                      ? `${sessionTimelineLogs.find(l => l.utm_source)?.utm_source} / ${sessionTimelineLogs.find(l => l.utm_source)?.utm_campaign || "none"}`
+                      : "Direct / Organic"}
+                  </span>
+                </div>
+                <div>
+                  <span className="text-slate-400 block uppercase font-bold tracking-wider text-[10px] mb-0.5">Referrer</span>
+                  <span className="text-white font-medium truncate block max-w-[200px]" title={sessionTimelineLogs.find(l => l.referrer)?.referrer || "None"}>
+                    {sessionTimelineLogs.find(l => l.referrer)?.referrer || "None"}
+                  </span>
+                </div>
+              </div>
+
+              {/* Tab Selector */}
+              <div className="flex bg-slate-900 p-1 rounded-xl border border-slate-800 gap-x-2">
+                <button
+                  onClick={() => setActiveTab("flow")}
+                  className={`flex-1 py-2 text-xs font-bold rounded-lg transition ${
+                    activeTab === "flow" 
+                      ? "bg-sky-500 text-white shadow-sm" 
+                      : "text-slate-400 hover:text-white"
+                  }`}
+                >
+                  Visual Flow Diagram
+                </button>
+                <button
+                  onClick={() => setActiveTab("audit")}
+                  className={`flex-1 py-2 text-xs font-bold rounded-lg transition ${
+                    activeTab === "audit" 
+                      ? "bg-sky-500 text-white shadow-sm" 
+                      : "text-slate-400 hover:text-white"
+                  }`}
+                >
+                  Raw Chronological Log
+                </button>
+              </div>
+
+              {activeTab === "flow" ? (
+                <div className="space-y-4 py-2">
+                  {pageNodes.map((node, idx) => (
+                    <div key={idx} className="flex flex-col items-center">
+                      {/* Node Card */}
+                      <div className="w-full bg-[#1b253b]/80 border border-slate-800/80 hover:border-slate-700/80 rounded-xl p-5 shadow-md transition">
+                        <div className="flex items-start justify-between">
+                          <div className="space-y-1">
+                            <span className="text-[10px] uppercase font-bold tracking-wider text-slate-500">
+                              Step {idx + 1}: Page View
+                            </span>
+                            <h4 className="text-sm font-semibold text-sky-400 font-mono break-all">
+                              {node.path}
+                            </h4>
+                          </div>
+                          {node.durationMs !== undefined && (
+                            <div className="flex items-center gap-x-1.5 bg-slate-800/80 px-2.5 py-1 rounded-lg border border-slate-700/50 text-[10px] text-slate-300 font-bold">
+                              <Clock className="h-3 w-3 text-sky-400" />
+                              {formatDuration(node.durationMs)}
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Micro-events inside this page node */}
+                        {node.events.length > 0 && (
+                          <div className="mt-4 pt-3 border-t border-slate-800/80 space-y-2">
+                            <span className="text-[9px] uppercase font-black tracking-widest text-slate-500 block">
+                              Page Activities
+                            </span>
+                            <div className="flex flex-wrap gap-2">
+                              {node.events.map((evt, eIdx) => {
+                                let badge = "bg-slate-800 text-slate-400 border border-slate-750";
+                                if (evt.type === "video_watch") badge = "bg-amber-500/10 text-amber-400 border border-amber-500/20";
+                                else if (evt.type === "checkout_start") badge = "bg-sky-500/10 text-sky-400 border border-sky-500/20";
+                                else if (evt.type === "purchase_success") badge = "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20";
+                                else if (evt.type === "login_success" || evt.type === "signup_success") badge = "bg-indigo-500/10 text-indigo-400 border border-indigo-500/20";
+
+                                return (
+                                  <span key={eIdx} className={`px-2 py-1 rounded text-[10px] font-bold ${badge} flex items-center gap-x-1`}>
+                                    {evt.label}
+                                  </span>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Connector SVG Arrow */}
+                      {idx < pageNodes.length - 1 && (
+                        <div className="flex flex-col items-center my-3 group">
+                          <div className="h-6 w-0.5 bg-gradient-to-b from-sky-500 to-indigo-500 opacity-60 group-hover:opacity-100 transition" />
+                          <svg className="w-4 h-4 text-indigo-400 -mt-0.5 animate-bounce" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M19 13l-7 7-7-7" />
+                          </svg>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                /* Timeline Container */
+                <div className="relative pl-6 border-l-2 border-slate-800 space-y-6 py-2">
+                  {sessionTimelineLogs.map((log) => {
+                    let badgeColor = "bg-slate-800 text-slate-400 border border-slate-700/50";
+                    let dotColor = "bg-slate-700 ring-slate-800";
+                    let icon = "📄";
+                    let details = null;
+
+                    if (log.event_type === "session_start") {
+                      badgeColor = "bg-pink-500/10 text-pink-400 border border-pink-500/20";
+                      dotColor = "bg-pink-500 ring-pink-500/30";
+                      icon = "🚀";
+                    } else if (log.event_type === "page_view") {
+                      badgeColor = "bg-blue-500/10 text-blue-400 border border-blue-500/20";
+                      dotColor = "bg-blue-500 ring-blue-500/30";
+                      icon = "👁️";
+                    } else if (log.event_type === "page_exit") {
+                      badgeColor = "bg-slate-600/10 text-slate-400 border border-slate-600/20";
+                      dotColor = "bg-slate-600 ring-slate-600/30";
+                      icon = "🚪";
+                      details = `Spent ${formatDuration(log.duration_ms)}`;
+                    } else if (log.event_type === "login_success" || log.event_type === "signup_success") {
+                      badgeColor = "bg-indigo-500/10 text-indigo-400 border border-indigo-500/20";
+                      dotColor = "bg-indigo-500 ring-indigo-500/30";
+                      icon = "🔐";
+                      details = `Logged in via ${log.metadata?.method || "email"}`;
+                    } else if (log.event_type === "checkout_start") {
+                      badgeColor = "bg-sky-500/10 text-sky-400 border border-sky-500/20";
+                      dotColor = "bg-sky-500 ring-sky-500/30";
+                      icon = "🛒";
+                      details = `Started checkout process`;
+                    } else if (log.event_type === "purchase_success") {
+                      badgeColor = "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20";
+                      dotColor = "bg-emerald-500 ring-emerald-500/30";
+                      icon = "💰";
+                      details = `Completed checkout purchase successfully`;
+                    } else if (log.event_type === "video_watch") {
+                      badgeColor = "bg-amber-500/10 text-amber-400 border border-amber-500/20";
+                      dotColor = "bg-amber-500 ring-amber-500/30";
+                      icon = "🎥";
+                      details = `Watched video for ${formatDuration(log.metadata?.segmentMs)}`;
+                    }
+
+                    return (
+                      <div key={log.id} className="relative group">
+                        {/* Timeline Dot */}
+                        <span className={`absolute -left-[31px] top-1.5 flex h-4 w-4 items-center justify-center rounded-full ${dotColor} ring-4`} />
+                        
+                        {/* Event Details Card */}
+                        <div className="bg-slate-900/40 border border-slate-800/80 hover:border-slate-700/80 p-4 rounded-xl transition">
+                          <div className="flex flex-wrap items-center justify-between gap-2">
+                            <div className="flex items-center gap-x-2">
+                              <span className="text-sm">{icon}</span>
+                              <span className={`text-[10px] font-bold uppercase px-2 py-0.5 rounded ${badgeColor}`}>
+                                {log.event_type.replace("_", " ")}
+                              </span>
+                            </div>
+                            <span className="text-[10px] text-slate-500">
+                              {new Date(log.timestamp).toLocaleTimeString()}
+                            </span>
+                          </div>
+                          
+                          <div className="mt-2 text-xs font-mono text-sky-400 break-all">{log.pathname}</div>
+                          {details && (
+                            <div className="mt-1 text-xs text-slate-300 font-medium">{details}</div>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

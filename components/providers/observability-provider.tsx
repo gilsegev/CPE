@@ -5,7 +5,7 @@ import { usePathname, useSearchParams } from "next/navigation";
 import axios from "axios";
 
 interface ObservabilityContextProps {
-  logEvent: (eventType: string, metadata?: any) => void;
+  logEvent: (eventType: string, metadata?: any, durationMs?: number) => Promise<void>;
 }
 
 const ObservabilityContext = createContext<ObservabilityContextProps | null>(null);
@@ -55,7 +55,7 @@ export const ObservabilityProvider = ({ children }: { children: React.ReactNode 
   const maxScrollRef = useRef<number>(0);
 
   // Utility to send event log
-  const logEvent = (eventType: string, metadata: any = {}, durationMs?: number) => {
+  const logEvent = async (eventType: string, metadata: any = {}, durationMs?: number) => {
     try {
       const sessId = sessionRef.current || sessionStorage.getItem("cpe_session_id") || "anonymous";
       const utmSource = sessionStorage.getItem("utm_source") || undefined;
@@ -79,10 +79,7 @@ export const ObservabilityProvider = ({ children }: { children: React.ReactNode 
       if (eventType === "page_exit" && typeof navigator !== "undefined" && navigator.sendBeacon) {
         navigator.sendBeacon("/api/observability/log", JSON.stringify(payload));
       } else {
-        axios.post("/api/observability/log", payload).catch((err) => {
-          // Silent catch in production
-          console.error("Failed to log event:", err);
-        });
+        await axios.post("/api/observability/log", payload);
       }
     } catch (err) {
       console.error("Failed to track observability event:", err);
@@ -129,8 +126,9 @@ export const ObservabilityProvider = ({ children }: { children: React.ReactNode 
         meta.maxScrollPercent = maxScrollRef.current;
       }
 
-      // Track duration spent on previous screen
-      logEvent("page_exit", meta, duration);
+      // Track duration spent on previous screen (cap at 10 minutes to avoid background tab skew)
+      const cappedDuration = Math.min(duration, 10 * 60 * 1000);
+      logEvent("page_exit", meta, cappedDuration);
     }
 
     // Update refs for new page view
@@ -174,7 +172,9 @@ export const ObservabilityProvider = ({ children }: { children: React.ReactNode 
         if (currentPathRef.current === "/") {
           meta.maxScrollPercent = maxScrollRef.current;
         }
-        logEvent("page_exit", meta, duration);
+        // Cap at 10 minutes to avoid background tab skew
+        const cappedDuration = Math.min(duration, 10 * 60 * 1000);
+        logEvent("page_exit", meta, cappedDuration);
       }
     };
 
