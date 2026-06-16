@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useContext, useEffect, useRef } from "react";
+import { createContext, useContext, useEffect, useRef, Suspense } from "react";
 import { usePathname, useSearchParams } from "next/navigation";
 import axios from "axios";
 
@@ -18,9 +18,36 @@ export const useObservability = () => {
   return context;
 };
 
+// UTM Tracker wrapped in Suspense to prevent root layout hydration deopt or errors
+const UTMTracker = () => {
+  const searchParams = useSearchParams();
+
+  useEffect(() => {
+    if (searchParams) {
+      const utm_source = searchParams.get("utm_source");
+      const utm_medium = searchParams.get("utm_medium");
+      const utm_campaign = searchParams.get("utm_campaign");
+      
+      if (utm_source) {
+        sessionStorage.setItem("utm_source", utm_source);
+        document.cookie = `utm_source=${utm_source}; path=/; max-age=${60 * 60 * 24 * 30}`;
+      }
+      if (utm_medium) {
+        sessionStorage.setItem("utm_medium", utm_medium);
+        document.cookie = `utm_medium=${utm_medium}; path=/; max-age=${60 * 60 * 24 * 30}`;
+      }
+      if (utm_campaign) {
+        sessionStorage.setItem("utm_campaign", utm_campaign);
+        document.cookie = `utm_campaign=${utm_campaign}; path=/; max-age=${60 * 60 * 24 * 30}`;
+      }
+    }
+  }, [searchParams]);
+
+  return null;
+};
+
 export const ObservabilityProvider = ({ children }: { children: React.ReactNode }) => {
   const pathname = usePathname();
-  const searchParams = useSearchParams();
   
   const sessionRef = useRef<string>("");
   const currentPathRef = useRef<string>("");
@@ -62,7 +89,7 @@ export const ObservabilityProvider = ({ children }: { children: React.ReactNode 
     }
   };
 
-  // Initialize Session and UTM tags
+  // Initialize Session and Referrer
   useEffect(() => {
     // 1. Get or generate Session ID
     let sessId = sessionStorage.getItem("cpe_session_id");
@@ -75,32 +102,12 @@ export const ObservabilityProvider = ({ children }: { children: React.ReactNode 
     sessionRef.current = sessId;
     document.cookie = `cpe_session_id=${sessId}; path=/; max-age=${60 * 60 * 24 * 30}`; // 30 days
 
-    // 2. Parse and save UTM parameters
-    if (searchParams) {
-      const utm_source = searchParams.get("utm_source");
-      const utm_medium = searchParams.get("utm_medium");
-      const utm_campaign = searchParams.get("utm_campaign");
-      
-      if (utm_source) {
-        sessionStorage.setItem("utm_source", utm_source);
-        document.cookie = `utm_source=${utm_source}; path=/; max-age=${60 * 60 * 24 * 30}`;
-      }
-      if (utm_medium) {
-        sessionStorage.setItem("utm_medium", utm_medium);
-        document.cookie = `utm_medium=${utm_medium}; path=/; max-age=${60 * 60 * 24 * 30}`;
-      }
-      if (utm_campaign) {
-        sessionStorage.setItem("utm_campaign", utm_campaign);
-        document.cookie = `utm_campaign=${utm_campaign}; path=/; max-age=${60 * 60 * 24 * 30}`;
-      }
-    }
-
     if (typeof document !== "undefined" && document.referrer) {
       sessionStorage.setItem("cpe_referrer", document.referrer);
       document.cookie = `cpe_referrer=${encodeURIComponent(document.referrer)}; path=/; max-age=${60 * 60 * 24 * 30}`;
     }
 
-    // 3. Log initial session start
+    // 2. Log initial session start
     logEvent("session_start");
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -180,6 +187,9 @@ export const ObservabilityProvider = ({ children }: { children: React.ReactNode 
 
   return (
     <ObservabilityContext.Provider value={{ logEvent }}>
+      <Suspense fallback={null}>
+        <UTMTracker />
+      </Suspense>
       {children}
     </ObservabilityContext.Provider>
   );
