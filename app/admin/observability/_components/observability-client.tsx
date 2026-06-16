@@ -141,8 +141,8 @@ const getCleanPathLabel = (
   
   if (cleanPath.startsWith("/sign-in")) {
     return {
-      title: "Sign In",
-      subtitle: "Accessing existing account",
+      title: "Sign In Page",
+      subtitle: "Visiting the sign-in screen",
       icon: LogIn,
       gradient: "from-violet-500 to-purple-500",
       bgColor: "bg-violet-500/10",
@@ -153,8 +153,8 @@ const getCleanPathLabel = (
   
   if (cleanPath.startsWith("/sign-up")) {
     return {
-      title: "Create Account",
-      subtitle: "Registering new student profile",
+      title: "Sign Up Page",
+      subtitle: "Visiting the registration screen",
       icon: UserPlus,
       gradient: "from-fuchsia-500 to-pink-500",
       bgColor: "bg-fuchsia-500/10",
@@ -227,7 +227,7 @@ export const ObservabilityClient = ({
     let currentNode: typeof nodes[0] | null = null;
 
     sessionTimelineLogs.forEach((log) => {
-      if (log.event_type === "page_view" || log.event_type === "session_start") {
+      if (log.event_type === "page_view") {
         currentNode = {
           path: log.pathname || "/",
           entryTime: log.timestamp,
