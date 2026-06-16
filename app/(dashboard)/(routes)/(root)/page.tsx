@@ -11,7 +11,7 @@ export default async function Dashboard() {
   const user = await getCurrentUser();
 
   if (!user) {
-    return redirect("/sign-in");
+    return redirect("/search");
   }
 
   const {
