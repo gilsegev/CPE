@@ -1,0 +1,158 @@
+{
+  "name": "Course Enrollment Notification",
+  "active": true,
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "course-enrollment",
+        "options": {}
+      },
+      "id": "webhook-trigger-id",
+      "name": "Directus Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [
+        100,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "url": "=https://directus-production-69c0.up.railway.app/users/{{ $json.body.payload?.user_id }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "httpHeaderAuth",
+        "options": {}
+      },
+      "id": "fetch-user-id",
+      "name": "Fetch User",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [
+        300,
+        200
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "pykovaGnwSaykDqr",
+          "name": "Header Auth account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "url": "=https://directus-production-69c0.up.railway.app/items/Courses/{{ $('Directus Webhook').item.json.body.payload?.course_id }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "httpHeaderAuth",
+        "options": {}
+      },
+      "id": "fetch-course-id",
+      "name": "Fetch Course",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [
+        500,
+        200
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "pykovaGnwSaykDqr",
+          "name": "Header Auth account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const user = $('Fetch User').item.json.data;\nconst course = $('Fetch Course').item.json.data;\n\nconst jsonBody = {\n  from: \"Guiding Diversity <cpe@guidingdiversity.com>\",\n  reply_to: \"guidingdiversity@gmail.com\",\n  to: \"gil.segev@gmail.com\",\n  subject: `🎉 New Enrollment: ${user.first_name} ${user.last_name} enrolled in ${course.title}`,\n  html: `\n    <h3>New Course Enrollment</h3>\n    <p><strong>Student Name:</strong> ${user.first_name} ${user.last_name} (${user.legal_name || 'N/A'})</p>\n    <p><strong>Student Email:</strong> ${user.email}</p>\n    <p><strong>Course:</strong> ${course.title}</p>\n    <p><strong>Price:</strong> $${course.price}</p>\n    <p><strong>Time:</strong> ${new Date().toLocaleString('en-US', { timeZone: 'America/Chicago' })}</p>\n    <br/>\n    <p>Best regards,<br/>Guiding Diversity Platform</p>\n  `\n};\n\nreturn { json: jsonBody };"
+      },
+      "id": "prepare-email-payload-id",
+      "name": "Prepare Email Payload",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        700,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.resend.com/emails",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ $json }}",
+        "options": {}
+      },
+      "id": "send-email-id",
+      "name": "Send Enrollment Email",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [
+        900,
+        200
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "oJp1K98DfgudDjtl",
+          "name": "Header Auth account 3"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Directus Webhook": {
+      "main": [
+        [
+          {
+            "node": "Fetch User",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch User": {
+      "main": [
+        [
+          {
+            "node": "Fetch Course",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch Course": {
+      "main": [
+        [
+          {
+            "node": "Prepare Email Payload",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Email Payload": {
+      "main": [
+        [
+          {
+            "node": "Send Enrollment Email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "meta": {
+    "templateCredsSetupCompleted": true
+  },
+  "id": "JPXvqF8K6icOu9l2"
+}
