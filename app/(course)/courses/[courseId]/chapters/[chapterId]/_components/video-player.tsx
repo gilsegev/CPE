@@ -2,6 +2,7 @@
 
 import axios from "axios";
 import MuxPlayer from "@mux/mux-player-react";
+import Image from "next/image";
 import { useState, useRef, useEffect } from "react";
 import { toast } from "react-hot-toast";
 import { useRouter } from "next/navigation";
@@ -19,6 +20,7 @@ interface VideoPlayerProps {
   isLocked: boolean;
   completeOnEnd: boolean;
   title: string;
+  courseImageUrl?: string | null;
 }
 
 export const VideoPlayer = ({
@@ -29,6 +31,7 @@ export const VideoPlayer = ({
   isLocked,
   completeOnEnd,
   title,
+  courseImageUrl,
 }: VideoPlayerProps) => {
   const [isReady, setIsReady] = useState(false);
   const router = useRouter();
@@ -125,11 +128,22 @@ export const VideoPlayer = ({
         </div>
       )}
       {isLocked && (
-        <div className="absolute inset-0 flex items-center justify-center bg-slate-800 flex-col gap-y-2 text-secondary">
-          <Lock className="h-8 w-8" />
-          <p className="text-sm">
-            This chapter is locked
-          </p>
+        <div className="absolute inset-0 overflow-hidden bg-slate-800">
+          {courseImageUrl && (
+            <Image
+              src={courseImageUrl}
+              alt={`${title} course thumbnail`}
+              fill
+              className="object-cover"
+              priority
+            />
+          )}
+          <div className="absolute inset-0 flex flex-col items-center justify-center gap-y-2 bg-slate-950/60 text-white">
+            <Lock className="h-8 w-8" />
+            <p className="text-sm font-medium">
+              This chapter is locked
+            </p>
+          </div>
         </div>
       )}
       {!isLocked && (

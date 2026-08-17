@@ -207,6 +207,7 @@ const ChapterIdPage = async ({
                     playbackId={muxData?.playbackId!}
                     isLocked={isLocked}
                     completeOnEnd={completeOnEnd}
+                    courseImageUrl={course.imageUrl}
                   />
                 </div>
                 <div>

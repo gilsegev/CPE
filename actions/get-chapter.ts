@@ -26,10 +26,10 @@ export const getChapter = async ({
     ) : [];
     const purchase = purchases[0] || null;
 
-    // 2. Fetch course pricing
+    // 2. Fetch course pricing and thumbnail for the locked chapter state
     const courseRaw = await db.request(
       readItem("Courses", courseId, {
-        fields: ["price", "is_published"],
+        fields: ["price", "is_published", "thumbnail_url"],
       })
     );
     if (!courseRaw || !courseRaw.is_published) {
@@ -38,6 +38,9 @@ export const getChapter = async ({
 
     const course = {
       price: Number(courseRaw.price) || 0,
+      imageUrl: courseRaw.thumbnail_url
+        ? `${process.env.NEXT_PUBLIC_DIRECTUS_URL || 'https://directus-production-69c0.up.railway.app'}/assets/${courseRaw.thumbnail_url}`
+        : null,
     };
 
     // 3. Fetch specific module (chapter) details
