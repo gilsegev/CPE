@@ -408,6 +408,9 @@ export const QuizAssessment = ({
                 optionStyle
               )}
             >
+              <span className="mr-3 shrink-0 font-bold" aria-hidden="true">
+                {String.fromCharCode(65 + idx)}.
+              </span>
               <span className="flex-1 pr-4">{option}</span>
               {iconContainer}
             </button>
