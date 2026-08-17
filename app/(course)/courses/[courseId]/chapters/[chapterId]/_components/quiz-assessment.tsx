@@ -237,7 +237,7 @@ export const QuizAssessment = ({
     if (nextChapterId) {
       window.location.assign(`/courses/${courseId}/chapters/${nextChapterId}`);
     } else {
-      window.location.assign(`/search`);
+      window.location.assign(`/`);
     }
   };
 
@@ -263,6 +263,7 @@ export const QuizAssessment = ({
   // Render Pass/Fail screen when quiz is completed
   if (isCompleted && score !== null) {
     const passed = score >= initialData.passingScore;
+    const courseCompleted = passed && !nextChapterId;
 
     return (
       <div className="max-w-2xl mx-auto p-6 md:p-8 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/80 shadow-xl mt-6 transition-all duration-300">
@@ -278,11 +279,13 @@ export const QuizAssessment = ({
           )}
 
           <h2 className="text-3xl font-extrabold text-slate-800 dark:text-slate-100 tracking-tight">
-            {passed ? "Assessment Passed!" : "Quiz Score Result"}
+            {courseCompleted ? "Course Completed!" : passed ? "Assessment Passed!" : "Quiz Score Result"}
           </h2>
 
           <p className="text-slate-500 mt-2 max-w-sm">
-            {passed
+            {courseCompleted
+              ? "Congratulations! You completed the course. Your certification will be emailed to you."
+              : passed
               ? "Great job! You have satisfied the 80% passing requirement and unlocked the Final Assessment."
               : `You scored ${score}%. A passing rate of ${initialData.passingScore}% is required. Please review explanations and try again.`}
           </p>
@@ -316,7 +319,7 @@ export const QuizAssessment = ({
                 onClick={onContinue}
                 className="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold py-6 px-8 rounded-xl flex items-center justify-center gap-2 shadow-lg hover:shadow-emerald-600/20 transition-all w-full sm:w-auto"
               >
-                Continue Course
+                {courseCompleted ? "Close Course" : "Continue Course"}
                 <ArrowRight className="h-5 w-5" />
               </Button>
             )}
