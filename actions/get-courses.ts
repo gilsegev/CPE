@@ -1,4 +1,4 @@
-import { db } from "@/lib/db";
+import { db, publicDb } from "@/lib/db";
 import { readItems } from "@directus/sdk";
 import { getProgress } from "@/actions/get-progress";
 
@@ -17,7 +17,7 @@ export const getCourses = async ({
 }: GetCourses): Promise<CourseWithProgressWithCategory[]> => {
   try {
     // 1. Fetch published courses matching the title filter
-    const courses = await db.request(
+    const courses = await publicDb.request(
       readItems("Courses", {
         filter: {
           is_published: { _eq: true },
@@ -46,7 +46,7 @@ export const getCourses = async ({
     const coursesWithProgress = await Promise.all(
       courses.map(async (course) => {
         // Fetch course modules (mapped as chapters in the frontend UI)
-        const modules = await db.request(
+        const modules = await publicDb.request(
           readItems("Modules", {
             filter: {
               course_id: { _eq: course.id },

@@ -130,6 +130,12 @@ const directus = createDirectus<CPESchema>(directusUrl, {
 })
   .with(rest());
 
+export const publicDb = createDirectus<CPESchema>(directusUrl, {
+  globals: {
+    fetch: customFetch,
+  },
+}).with(rest());
+
 export const db = adminToken
   ? directus.with(staticToken(adminToken))
   : directus;
