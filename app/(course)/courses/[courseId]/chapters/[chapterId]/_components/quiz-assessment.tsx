@@ -284,7 +284,7 @@ export const QuizAssessment = ({
 
           <p className="text-slate-500 mt-2 max-w-sm">
             {courseCompleted
-              ? "Congratulations! You completed the course. Your certification will be emailed to you."
+              ? "Congratulations! You completed the course. Your certificate will be emailed to you."
               : passed
               ? "Great job! You have satisfied the 80% passing requirement and unlocked the Final Assessment."
               : `You scored ${score}%. A passing rate of ${initialData.passingScore}% is required. Please review explanations and try again.`}
