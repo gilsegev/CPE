@@ -45,11 +45,13 @@ export const getCourses = async ({
     // 3. Map courses and fetch their respective modules and progress
     const coursesWithProgress = await Promise.all(
       courses.map(async (course) => {
-        // Fetch course modules (mapped as chapters in the frontend UI)
-        const modules = await publicDb.request(
+        // Count protected video modules as chapters without exposing their content publicly.
+        // Quizzes and essay assessments are course activities, not chapters.
+        const modules = await db.request(
           readItems("Modules", {
             filter: {
               course_id: { _eq: course.id },
+              type: { _eq: "video" },
             },
             fields: ["id"],
           })
@@ -75,7 +77,7 @@ export const getCourses = async ({
           isPublished: course.is_published,
           imageUrl,
           category: null, // No category system in current Phase 1 schema
-          chapters: modules.map((m) => ({ id: m.id })), // Map to chapters for frontend routing
+          chapters: modules.map((m) => ({ id: m.id })),
           progress,
         };
       })
