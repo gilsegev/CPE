@@ -228,7 +228,9 @@ const ChapterIdPage = async ({
                               variant="default"
                               className="w-full md:w-auto bg-slate-900 hover:bg-slate-800 text-white font-semibold flex items-center justify-center gap-x-2"
                             >
-                              Continue to Next Chapter
+                              {nextChapter.type === "quiz"
+                                ? "Continue to Quiz"
+                                : "Continue to Next Chapter"}
                               <ArrowRight className="h-4 w-4" />
                             </Button>
                           </Link>
