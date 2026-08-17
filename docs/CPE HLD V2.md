@@ -10,7 +10,7 @@ The platform delivers compliant, certified training modules. The critical path f
 2. **Consumption:** Watch adaptive bitrate videos (via Mux).  
 3. **Assessment:** Complete a structured multiple-choice quiz and submit a text-based case study (essay).  
 4. **Evaluation:** Admin (Instructor) manually reviews the case study in the backend dashboard and marks it as Approved.  
-5. **Certification:** An automated pipeline generates a customized PDF certificate and emails it to the user.
+5. **Certificate:** An automated pipeline generates a customized PDF certificate and emails it to the user.
 
 ## **2\. Technology Stack & Roles**
 
@@ -68,7 +68,7 @@ This explicit schema replaces the default Prisma models from the clone, mapping 
 
 ### **4.5 Video Progress Guard (Seeking Restrictions)**
 
-* **Compliance Requirement:** To satisfy TEA certification standards, students must watch video modules in their entirety.
+* **Compliance Requirement:** To satisfy TEA certificate requirements, students must watch video modules in their entirety.
 * **Implementation:** The Next.js video component intercepts seek events via the Mux Player `onTimeUpdate` and `onSeeking` event streams.
 * **Behavior:** The player tracks the furthest watched timestamp. If a student attempts to seek forward beyond this point, the video snaps back to the furthest watched time and triggers a warning toast. Backward seeking is fully enabled to permit review.
 

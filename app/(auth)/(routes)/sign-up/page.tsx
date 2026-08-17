@@ -120,7 +120,7 @@ export default async function SignUpPage({ searchParams }: SignUpPageProps) {
     <div className="w-full max-w-[450px] bg-[#1a2333]/90 border border-[#2d3a5a] backdrop-blur-md p-8 rounded-2xl shadow-2xl">
       <div className="mb-6 text-center">
         <h1 className="text-2xl font-bold text-white font-serif">Create Account</h1>
-        <p className="text-sm text-slate-300 mt-1">Register for CPE course certification</p>
+        <p className="text-sm text-slate-300 mt-1">Register for a CPE course certificate</p>
       </div>
 
       {error && (

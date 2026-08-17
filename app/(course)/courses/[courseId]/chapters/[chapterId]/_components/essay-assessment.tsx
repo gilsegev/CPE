@@ -193,7 +193,7 @@ export const EssayAssessment = ({
               Status: Action Required (Not Approved)
             </h4>
             <p className="text-xs text-rose-700 dark:text-rose-500/80 mt-1 leading-relaxed">
-              Your submission did not meet the certification standards. Please contact your coordinator or review feedback in Directus to make adjustments.
+              Your submission did not meet the certificate requirements. Please contact your coordinator or review feedback in Directus to make adjustments.
             </p>
           </div>
         </div>
