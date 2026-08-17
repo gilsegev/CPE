@@ -114,7 +114,7 @@ export type CPESchema = {
 };
 
 const directusUrl = process.env.NEXT_PUBLIC_DIRECTUS_URL || 'https://directus-production-69c0.up.railway.app';
-const adminToken = process.env.DIRECTUS_ADMIN_TOKEN || 'Qurc2emXjz6L4zz9lLZ99gKWbjPng4MM';
+const adminToken = process.env.DIRECTUS_ADMIN_TOKEN;
 
 const customFetch = (input: any, init?: any) => {
   return fetch(input, {
@@ -123,10 +123,13 @@ const customFetch = (input: any, init?: any) => {
   });
 };
 
-export const db = createDirectus<CPESchema>(directusUrl, {
+const directus = createDirectus<CPESchema>(directusUrl, {
   globals: {
     fetch: customFetch,
   },
 })
-  .with(rest())
-  .with(staticToken(adminToken));
+  .with(rest());
+
+export const db = adminToken
+  ? directus.with(staticToken(adminToken))
+  : directus;
