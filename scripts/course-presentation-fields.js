@@ -32,6 +32,10 @@ const coursePresentationFields = [
       },
     },
   },
+  { field: "cpe_trust_heading", type: "string", meta: { interface: "input", note: "Trust-panel heading shown below the public course contents. Leave blank to use the course's CPE hours.", options: { placeholder: "Earn 1 Texas CPE Hour" } } },
+  { field: "cpe_trust_description", type: "text", meta: { interface: "textarea", note: "Course-specific CPE provider and certificate explanation shown before enrollment." } },
+  { field: "cpe_provider_number", type: "string", meta: { interface: "input", note: "TEA/SBEC CPE provider number displayed in the trust panel." } },
+  { field: "cpe_provider_listing_url", type: "string", meta: { interface: "input", note: "Full URL for this provider's official TEA listing.", options: { placeholder: "https://tea.texas.gov/..." } } },
 ];
 
 module.exports = { coursePresentationFields };

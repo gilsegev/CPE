@@ -20,6 +20,10 @@ export interface CourseDetails {
   benefits: string[];
   learningObjectives: string[];
   courseContents: CourseContentItem[];
+  cpeTrustHeading?: string | null;
+  cpeTrustDescription?: string | null;
+  cpeProviderNumber?: string | null;
+  cpeProviderListingUrl?: string | null;
   price: number;
   imageUrl: string | null;
 }
@@ -95,6 +99,10 @@ export const getChapter = async ({
           "benefits",
           "learning_objectives",
           "course_contents",
+          "cpe_trust_heading",
+          "cpe_trust_description",
+          "cpe_provider_number",
+          "cpe_provider_listing_url",
           "price",
           "is_published",
           "thumbnail_url",
@@ -125,6 +133,10 @@ export const getChapter = async ({
             .slice(0, 5)
         : [],
       courseContents: parseCourseContents(courseRaw.course_contents),
+      cpeTrustHeading: courseRaw.cpe_trust_heading,
+      cpeTrustDescription: courseRaw.cpe_trust_description,
+      cpeProviderNumber: courseRaw.cpe_provider_number,
+      cpeProviderListingUrl: courseRaw.cpe_provider_listing_url,
       price: Number(courseRaw.price) || 0,
       imageUrl: courseRaw.thumbnail_url
         ? `${process.env.NEXT_PUBLIC_DIRECTUS_URL || 'https://directus-production-69c0.up.railway.app'}/assets/${courseRaw.thumbnail_url}`

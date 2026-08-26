@@ -20,6 +20,7 @@ import { CourseHero } from "./_components/course-hero";
 import { CourseBenefits } from "./_components/course-benefits";
 import { CourseLearningObjectives } from "./_components/course-learning-objectives";
 import { CourseContents } from "./_components/course-contents";
+import { CourseCpeTrustPanel } from "./_components/course-cpe-trust-panel";
 import { Button } from "@/components/ui/button";
 
 const ChapterIdPage = async ({
@@ -167,6 +168,13 @@ const ChapterIdPage = async ({
           <CourseContents
             items={courseDetails.courseContents}
             cpeHours={courseDetails.cpeHours}
+          />
+          <CourseCpeTrustPanel
+            heading={courseDetails.cpeTrustHeading}
+            description={courseDetails.cpeTrustDescription}
+            cpeHours={courseDetails.cpeHours}
+            providerNumber={courseDetails.cpeProviderNumber}
+            providerListingUrl={courseDetails.cpeProviderListingUrl}
           />
           <CourseLearningObjectives objectives={courseDetails.learningObjectives} />
         </>
