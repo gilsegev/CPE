@@ -8,6 +8,7 @@ const coursePresentationFields = [
   { field: "benefit_heading", type: "string", meta: { interface: "input", note: "Heading displayed above the course benefit cards.", options: { placeholder: "Walk away with strategies you can use tomorrow" } } },
   { field: "benefit_description", type: "text", meta: { interface: "textarea", note: "Short supporting copy displayed above the course benefit cards." } },
   { field: "benefits", type: "json", meta: { interface: "tags", note: "Add exactly three short course outcomes. Only the first three are displayed." } },
+  { field: "learning_objectives", type: "json", meta: { interface: "tags", note: "Add three to five concise learning objectives. Only the first five are displayed." } },
 ];
 
 module.exports = { coursePresentationFields };

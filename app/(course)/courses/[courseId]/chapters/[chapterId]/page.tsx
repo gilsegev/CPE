@@ -18,6 +18,7 @@ import { EssayAssessment } from "./_components/essay-assessment";
 import { PaymentVerificationPoller } from "./_components/payment-verification-poller";
 import { CourseHero } from "./_components/course-hero";
 import { CourseBenefits } from "./_components/course-benefits";
+import { CourseLearningObjectives } from "./_components/course-learning-objectives";
 import { Button } from "@/components/ui/button";
 
 const ChapterIdPage = async ({
@@ -162,6 +163,7 @@ const ChapterIdPage = async ({
             description={courseDetails.benefitDescription}
             benefits={courseDetails.benefits}
           />
+          <CourseLearningObjectives objectives={courseDetails.learningObjectives} />
         </>
       )}
       {userProgress?.isCompleted && chapter.type === "video" && (

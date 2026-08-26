@@ -18,6 +18,7 @@ export interface CourseDetails {
   benefitHeading?: string | null;
   benefitDescription?: string | null;
   benefits: string[];
+  learningObjectives: string[];
   price: number;
   imageUrl: string | null;
 }
@@ -55,6 +56,7 @@ export const getChapter = async ({
           "benefit_heading",
           "benefit_description",
           "benefits",
+          "learning_objectives",
           "price",
           "is_published",
           "thumbnail_url",
@@ -77,6 +79,12 @@ export const getChapter = async ({
       benefitDescription: courseRaw.benefit_description,
       benefits: Array.isArray(courseRaw.benefits)
         ? courseRaw.benefits.filter((benefit): benefit is string => typeof benefit === "string" && benefit.trim().length > 0).slice(0, 3)
+        : [],
+      learningObjectives: Array.isArray(courseRaw.learning_objectives)
+        ? courseRaw.learning_objectives
+            .filter((objective): objective is string => typeof objective === "string" && objective.trim().length > 0)
+            .map((objective) => objective.trim())
+            .slice(0, 5)
         : [],
       price: Number(courseRaw.price) || 0,
       imageUrl: courseRaw.thumbnail_url

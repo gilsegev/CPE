@@ -13,6 +13,7 @@ export interface Course {
   benefit_heading?: string;
   benefit_description?: string;
   benefits?: string[];
+  learning_objectives?: string[];
   price: number;
   is_published: boolean;
   thumbnail_url?: string;
