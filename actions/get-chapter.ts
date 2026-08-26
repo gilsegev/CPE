@@ -26,10 +26,21 @@ export const getChapter = async ({
     ) : [];
     const purchase = purchases[0] || null;
 
-    // 2. Fetch course pricing and thumbnail for the locked chapter state
+    // 2. Fetch course marketing details for the pre-enrollment hero
     const courseRaw = await db.request(
       readItem("Courses", courseId, {
-        fields: ["price", "is_published", "thumbnail_url"],
+        fields: [
+          "title",
+          "subtitle",
+          "cpe_hours",
+          "estimated_duration",
+          "delivery_format",
+          "instructor",
+          "cta_label",
+          "price",
+          "is_published",
+          "thumbnail_url",
+        ],
       })
     );
     if (!courseRaw || !courseRaw.is_published) {
@@ -37,6 +48,13 @@ export const getChapter = async ({
     }
 
     const course = {
+      title: courseRaw.title,
+      subtitle: courseRaw.subtitle,
+      cpeHours: courseRaw.cpe_hours == null ? null : Number(courseRaw.cpe_hours),
+      estimatedDuration: courseRaw.estimated_duration,
+      deliveryFormat: courseRaw.delivery_format,
+      instructor: courseRaw.instructor,
+      ctaLabel: courseRaw.cta_label,
       price: Number(courseRaw.price) || 0,
       imageUrl: courseRaw.thumbnail_url
         ? `${process.env.NEXT_PUBLIC_DIRECTUS_URL || 'https://directus-production-69c0.up.railway.app'}/assets/${courseRaw.thumbnail_url}`
