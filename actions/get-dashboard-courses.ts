@@ -28,6 +28,7 @@ export const getDashboardCourses = async (userId: string) => {
       readItems("Courses", {
         filter: {
           id: { _in: courseIds },
+          is_published: { _eq: true },
         },
         fields: ["id", "title", "description", "price", "is_published", "thumbnail_url"],
       })

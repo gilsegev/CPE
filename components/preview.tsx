@@ -1,9 +1,10 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { useMemo } from "react";
 
 import "react-quill/dist/quill.bubble.css";
+
+const ReactQuill = dynamic(() => import("react-quill"), { ssr: false });
 
 interface PreviewProps {
   value: string;
@@ -12,8 +13,6 @@ interface PreviewProps {
 export const Preview = ({
   value,
 }: PreviewProps) => {
-  const ReactQuill = useMemo(() => dynamic(() => import("react-quill"), { ssr: false }), []);
-
   return (
     <ReactQuill
       theme="bubble"
