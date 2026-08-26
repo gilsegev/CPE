@@ -270,6 +270,7 @@ async function main() {
   const relations = [
     // Courses -> directus_files
     { collection: 'Courses', field: 'thumbnail_url', related_collection: 'directus_files' },
+    { collection: 'Courses', field: 'instructor_photo', related_collection: 'directus_files' },
     // Modules -> Courses
     { collection: 'Modules', field: 'course_id', related_collection: 'Courses' },
     // Purchases -> Users & Courses

@@ -9,6 +9,9 @@ export interface Course {
   estimated_duration?: string;
   delivery_format?: string;
   instructor?: string;
+  instructor_heading?: string;
+  instructor_bio?: string;
+  instructor_photo?: string;
   cta_label?: string;
   benefit_heading?: string;
   benefit_description?: string;

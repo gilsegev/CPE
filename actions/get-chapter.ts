@@ -14,6 +14,9 @@ export interface CourseDetails {
   estimatedDuration?: string | null;
   deliveryFormat?: string | null;
   instructor?: string | null;
+  instructorHeading?: string | null;
+  instructorBio?: string | null;
+  instructorPhotoUrl?: string | null;
   ctaLabel?: string | null;
   benefitHeading?: string | null;
   benefitDescription?: string | null;
@@ -93,6 +96,9 @@ export const getChapter = async ({
           "estimated_duration",
           "delivery_format",
           "instructor",
+          "instructor_heading",
+          "instructor_bio",
+          "instructor_photo",
           "cta_label",
           "benefit_heading",
           "benefit_description",
@@ -120,6 +126,11 @@ export const getChapter = async ({
       estimatedDuration: courseRaw.estimated_duration,
       deliveryFormat: courseRaw.delivery_format,
       instructor: courseRaw.instructor,
+      instructorHeading: courseRaw.instructor_heading,
+      instructorBio: courseRaw.instructor_bio,
+      instructorPhotoUrl: courseRaw.instructor_photo
+        ? `${process.env.NEXT_PUBLIC_DIRECTUS_URL || 'https://directus-production-69c0.up.railway.app'}/assets/${courseRaw.instructor_photo}`
+        : null,
       ctaLabel: courseRaw.cta_label,
       benefitHeading: courseRaw.benefit_heading,
       benefitDescription: courseRaw.benefit_description,

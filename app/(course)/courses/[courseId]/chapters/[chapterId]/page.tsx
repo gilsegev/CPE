@@ -21,6 +21,7 @@ import { CourseBenefits } from "./_components/course-benefits";
 import { CourseLearningObjectives } from "./_components/course-learning-objectives";
 import { CourseContents } from "./_components/course-contents";
 import { CourseCpeTrustPanel } from "./_components/course-cpe-trust-panel";
+import { CourseInstructor } from "./_components/course-instructor";
 import { Button } from "@/components/ui/button";
 
 const ChapterIdPage = async ({
@@ -177,6 +178,11 @@ const ChapterIdPage = async ({
             providerListingUrl={courseDetails.cpeProviderListingUrl}
           />
           <CourseLearningObjectives objectives={courseDetails.learningObjectives} />
+          <CourseInstructor
+            heading={courseDetails.instructorHeading}
+            biography={courseDetails.instructorBio}
+            photoUrl={courseDetails.instructorPhotoUrl}
+          />
         </>
       )}
       {userProgress?.isCompleted && chapter.type === "video" && (

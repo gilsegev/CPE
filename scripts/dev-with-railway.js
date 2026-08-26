@@ -47,8 +47,44 @@ async function syncCoursePresentationFields() {
   console.log(`Directus course schema is current (${missingFields.length} ${label} added).`);
 }
 
+async function syncInstructorPhotoRelation() {
+  const relationUrl = new URL("/relations/Courses/instructor_photo", directusUrl);
+  const relationResponse = await fetch(relationUrl, {
+    headers: { Authorization: `Bearer ${adminToken}` },
+    cache: "no-store",
+  });
+
+  if (relationResponse.ok) {
+    return;
+  }
+
+  if (relationResponse.status !== 404) {
+    throw new Error(`Directus relation check failed with status ${relationResponse.status}.`);
+  }
+
+  const createResponse = await fetch(new URL("/relations", directusUrl), {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${adminToken}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      collection: "Courses",
+      field: "instructor_photo",
+      related_collection: "directus_files",
+    }),
+  });
+
+  if (!createResponse.ok) {
+    throw new Error(`Could not create Directus relation Courses.instructor_photo (status ${createResponse.status}).`);
+  }
+
+  console.log("Directus instructor photo relation added.");
+}
+
 async function start() {
   await syncCoursePresentationFields();
+  await syncInstructorPhotoRelation();
 
   const response = await fetch(catalogUrl, { cache: "no-store" });
 
