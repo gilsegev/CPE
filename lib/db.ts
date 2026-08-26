@@ -4,9 +4,33 @@ export interface Course {
   id: string;
   title: string;
   description?: string;
+  subtitle?: string;
+  cpe_hours?: number;
+  estimated_duration?: string;
+  delivery_format?: string;
+  instructor?: string;
+  instructor_heading?: string;
+  instructor_bio?: string;
+  instructor_photo?: string;
+  cta_label?: string;
+  benefit_heading?: string;
+  benefit_description?: string;
+  benefits?: string[];
+  learning_objectives?: string[];
+  course_contents?: CourseContentItem[];
+  cpe_trust_heading?: string;
+  cpe_trust_description?: string;
+  cpe_provider_number?: string;
+  cpe_provider_listing_url?: string;
   price: number;
   is_published: boolean;
   thumbnail_url?: string;
+}
+
+export interface CourseContentItem {
+  title: string;
+  duration_minutes: number;
+  description: string;
 }
 
 export interface Module {

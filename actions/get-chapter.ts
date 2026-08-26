@@ -1,4 +1,4 @@
-import { db } from "@/lib/db";
+import { db, type CourseContentItem } from "@/lib/db";
 import { readItems, readItem } from "@directus/sdk";
 
 interface GetChapterProps {
@@ -6,6 +6,66 @@ interface GetChapterProps {
   courseId: string;
   chapterId: string; // Map to module_id
 }
+
+export interface CourseDetails {
+  title: string;
+  subtitle?: string | null;
+  cpeHours: number | null;
+  estimatedDuration?: string | null;
+  deliveryFormat?: string | null;
+  instructor?: string | null;
+  instructorHeading?: string | null;
+  instructorBio?: string | null;
+  instructorPhotoUrl?: string | null;
+  ctaLabel?: string | null;
+  benefitHeading?: string | null;
+  benefitDescription?: string | null;
+  benefits: string[];
+  learningObjectives: string[];
+  courseContents: CourseContentItem[];
+  cpeTrustHeading?: string | null;
+  cpeTrustDescription?: string | null;
+  cpeProviderNumber?: string | null;
+  cpeProviderListingUrl?: string | null;
+  price: number;
+  imageUrl: string | null;
+}
+
+const defaultCourseContents: CourseContentItem[] = [
+  {
+    title: "Breaking Down ADHD",
+    duration_minutes: 45,
+    description: "Learn how ADHD affects attention, executive functioning, and behavior in the classroom.",
+  },
+  {
+    title: "Knowledge Check",
+    duration_minutes: 10,
+    description: "Confirm your understanding of the course's key concepts and classroom strategies.",
+  },
+  {
+    title: "Course Evaluation and Certificate",
+    duration_minutes: 5,
+    description: "Share course feedback and complete the requirements for your CPE certificate.",
+  },
+];
+
+const parseCourseContents = (value: unknown): CourseContentItem[] => {
+  if (!Array.isArray(value)) return defaultCourseContents;
+
+  const items = value.flatMap((item) => {
+    if (!item || typeof item !== "object") return [];
+    const candidate = item as Record<string, unknown>;
+    const title = typeof candidate.title === "string" ? candidate.title.trim() : "";
+    const description = typeof candidate.description === "string" ? candidate.description.trim() : "";
+    const durationMinutes = Number(candidate.duration_minutes);
+
+    if (!title || !description || !Number.isFinite(durationMinutes) || durationMinutes <= 0) return [];
+
+    return [{ title, description, duration_minutes: durationMinutes }];
+  });
+
+  return items.length > 0 ? items : defaultCourseContents;
+};
 
 export const getChapter = async ({
   userId,
@@ -26,17 +86,68 @@ export const getChapter = async ({
     ) : [];
     const purchase = purchases[0] || null;
 
-    // 2. Fetch course pricing and thumbnail for the locked chapter state
+    // 2. Fetch course marketing details for the pre-enrollment hero
     const courseRaw = await db.request(
       readItem("Courses", courseId, {
-        fields: ["price", "is_published", "thumbnail_url"],
+        fields: [
+          "title",
+          "subtitle",
+          "cpe_hours",
+          "estimated_duration",
+          "delivery_format",
+          "instructor",
+          "instructor_heading",
+          "instructor_bio",
+          "instructor_photo",
+          "cta_label",
+          "benefit_heading",
+          "benefit_description",
+          "benefits",
+          "learning_objectives",
+          "course_contents",
+          "cpe_trust_heading",
+          "cpe_trust_description",
+          "cpe_provider_number",
+          "cpe_provider_listing_url",
+          "price",
+          "is_published",
+          "thumbnail_url",
+        ],
       })
     );
     if (!courseRaw || !courseRaw.is_published) {
       throw new Error("Course not found or unpublished");
     }
 
-    const course = {
+    const course: CourseDetails = {
+      title: courseRaw.title,
+      subtitle: courseRaw.subtitle,
+      cpeHours: courseRaw.cpe_hours == null ? null : Number(courseRaw.cpe_hours),
+      estimatedDuration: courseRaw.estimated_duration,
+      deliveryFormat: courseRaw.delivery_format,
+      instructor: courseRaw.instructor,
+      instructorHeading: courseRaw.instructor_heading,
+      instructorBio: courseRaw.instructor_bio,
+      instructorPhotoUrl: courseRaw.instructor_photo
+        ? `${process.env.NEXT_PUBLIC_DIRECTUS_URL || 'https://directus-production-69c0.up.railway.app'}/assets/${courseRaw.instructor_photo}`
+        : null,
+      ctaLabel: courseRaw.cta_label,
+      benefitHeading: courseRaw.benefit_heading,
+      benefitDescription: courseRaw.benefit_description,
+      benefits: Array.isArray(courseRaw.benefits)
+        ? courseRaw.benefits.filter((benefit): benefit is string => typeof benefit === "string" && benefit.trim().length > 0).slice(0, 3)
+        : [],
+      learningObjectives: Array.isArray(courseRaw.learning_objectives)
+        ? courseRaw.learning_objectives
+            .filter((objective): objective is string => typeof objective === "string" && objective.trim().length > 0)
+            .map((objective) => objective.trim())
+            .slice(0, 5)
+        : [],
+      courseContents: parseCourseContents(courseRaw.course_contents),
+      cpeTrustHeading: courseRaw.cpe_trust_heading,
+      cpeTrustDescription: courseRaw.cpe_trust_description,
+      cpeProviderNumber: courseRaw.cpe_provider_number,
+      cpeProviderListingUrl: courseRaw.cpe_provider_listing_url,
       price: Number(courseRaw.price) || 0,
       imageUrl: courseRaw.thumbnail_url
         ? `${process.env.NEXT_PUBLIC_DIRECTUS_URL || 'https://directus-production-69c0.up.railway.app'}/assets/${courseRaw.thumbnail_url}`

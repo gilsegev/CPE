@@ -14,6 +14,7 @@ interface CourseEnrollButtonProps {
   courseId: string;
   isLoggedIn: boolean;
   chapterId: string;
+  label?: string;
 }
 
 export const CourseEnrollButton = ({
@@ -21,6 +22,7 @@ export const CourseEnrollButton = ({
   courseId,
   isLoggedIn,
   chapterId,
+  label,
 }: CourseEnrollButtonProps) => {
   const [isLoading, setIsLoading] = useState(false);
   const { logEvent } = useObservability();
@@ -54,7 +56,7 @@ export const CourseEnrollButton = ({
         className="w-full md:w-auto font-bold px-8 py-4 bg-slate-900 text-white hover:bg-slate-800 flex items-center justify-center gap-x-2 shadow-md hover:shadow-lg transition-all"
       >
         {isLoading && <Loader2 className="h-5 w-5 animate-spin" />}
-        Enroll in Course - {formatPrice(price)}
+        {label || `Enroll in Course - ${formatPrice(price)}`}
       </Button>
       {isLoading && (
         <span className="text-xs text-slate-400 animate-pulse text-center font-medium">

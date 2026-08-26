@@ -1,0 +1,37 @@
+const coursePresentationFields = [
+  { field: "subtitle", type: "text", meta: { interface: "textarea", note: "Short value proposition displayed in the course hero." } },
+  { field: "cpe_hours", type: "decimal", meta: { interface: "input", note: "Texas CPE credit hours awarded for this course." } },
+  { field: "estimated_duration", type: "string", meta: { interface: "input", options: { placeholder: "Approximately 60 Minutes" } } },
+  { field: "delivery_format", type: "string", meta: { interface: "input", options: { placeholder: "Self-Paced" } } },
+  { field: "instructor", type: "string", meta: { interface: "input", options: { placeholder: "Dr. Name, relevant credentials" } } },
+  { field: "instructor_heading", type: "string", meta: { interface: "input", note: "Heading for the compact instructor credibility section.", options: { placeholder: "Learn from Dr. Michal Segev" } } },
+  { field: "instructor_bio", type: "text", meta: { interface: "textarea", note: "A short, course-relevant biography. Keep the full biography on the About page." } },
+  { field: "instructor_photo", type: "uuid", meta: { interface: "file", special: ["file"], note: "Portrait displayed in the instructor credibility section." } },
+  { field: "cta_label", type: "string", schema: { default_value: "Enroll and Start Now" }, meta: { interface: "input", options: { placeholder: "Enroll and Start Now" } } },
+  { field: "benefit_heading", type: "string", meta: { interface: "input", note: "Heading displayed above the course benefit cards.", options: { placeholder: "Walk away with strategies you can use tomorrow" } } },
+  { field: "benefit_description", type: "text", meta: { interface: "textarea", note: "Short supporting copy displayed above the course benefit cards." } },
+  { field: "benefits", type: "json", meta: { interface: "tags", note: "Add exactly three short course outcomes. Only the first three are displayed." } },
+  { field: "learning_objectives", type: "json", meta: { interface: "tags", note: "Add three to five concise learning objectives. Only the first five are displayed." } },
+  {
+    field: "course_contents",
+    type: "json",
+    meta: {
+      interface: "list",
+      note: "Public, non-clickable course outline. Add a title, duration in minutes, and one-line description for each activity.",
+      options: {
+        template: "{{ title }} — {{ duration_minutes }} minutes",
+        fields: [
+          { field: "title", name: "Title", type: "string", meta: { interface: "input", required: true, width: "half" } },
+          { field: "duration_minutes", name: "Duration (minutes)", type: "integer", meta: { interface: "input", required: true, width: "half" } },
+          { field: "description", name: "One-line description", type: "text", meta: { interface: "textarea", required: true, width: "full" } },
+        ],
+      },
+    },
+  },
+  { field: "cpe_trust_heading", type: "string", meta: { interface: "input", note: "Trust-panel heading shown below the public course contents. Leave blank to use the course's CPE hours.", options: { placeholder: "Earn 1 Texas CPE Hour" } } },
+  { field: "cpe_trust_description", type: "text", meta: { interface: "textarea", note: "Course-specific CPE provider and certificate explanation shown before enrollment." } },
+  { field: "cpe_provider_number", type: "string", meta: { interface: "input", note: "TEA/SBEC CPE provider number displayed in the trust panel." } },
+  { field: "cpe_provider_listing_url", type: "string", meta: { interface: "input", note: "Full URL for this provider's official TEA listing.", options: { placeholder: "https://tea.texas.gov/..." } } },
+];
+
+module.exports = { coursePresentationFields };
