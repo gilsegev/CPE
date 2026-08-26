@@ -121,6 +121,12 @@ async function main() {
         { field: 'id', type: 'uuid', schema: { is_primary_key: true }, meta: { interface: 'input', readonly: true, hidden: true, special: ['uuid'] } },
         { field: 'status', type: 'string', schema: { default_value: 'draft' }, meta: { interface: 'select-dropdown', options: { choices: [{text: 'Published', value: 'published'}, {text: 'Draft', value: 'draft'}, {text: 'Archived', value: 'archived'}] } } },
         { field: 'title', type: 'string', meta: { interface: 'input', required: true } },
+        { field: 'subtitle', type: 'text', meta: { interface: 'textarea', note: 'Short value proposition displayed in the course hero.' } },
+        { field: 'cpe_hours', type: 'decimal', meta: { interface: 'input', note: 'Texas CPE credit hours awarded for this course.' } },
+        { field: 'estimated_duration', type: 'string', meta: { interface: 'input', options: { placeholder: 'Approximately 60 Minutes' } } },
+        { field: 'delivery_format', type: 'string', meta: { interface: 'input', options: { placeholder: 'Self-Paced' } } },
+        { field: 'instructor', type: 'string', meta: { interface: 'input', options: { placeholder: 'Dr. Name, relevant credentials' } } },
+        { field: 'cta_label', type: 'string', schema: { default_value: 'Enroll and Start Now' }, meta: { interface: 'input', options: { placeholder: 'Enroll and Start Now' } } },
         { field: 'description', type: 'text', meta: { interface: 'input-rich-text-html' } },
         { field: 'price', type: 'decimal', meta: { interface: 'input' } },
         { field: 'is_published', type: 'boolean', schema: { default_value: false }, meta: { interface: 'boolean' } },
@@ -241,6 +247,25 @@ async function main() {
     } catch (err) {
       if (err.message.includes('already exists')) {
         console.log(`   [i] Collection ${col.collection} already exists, skipping creation.`);
+      } else {
+        throw err;
+      }
+    }
+  }
+
+  // Collection creation is skipped on established installations, so add new
+  // course presentation fields independently to make this script an upgrade path.
+  const coursePresentationFields = collections.find((col) => col.collection === 'Courses').fields
+    .filter((field) => ['subtitle', 'cpe_hours', 'estimated_duration', 'delivery_format', 'instructor', 'cta_label'].includes(field.field));
+
+  console.log('\n3a. Ensuring configurable course hero fields exist...');
+  for (const field of coursePresentationFields) {
+    try {
+      await api('/fields/Courses', 'POST', field);
+      console.log(`   [✓] Created Courses.${field.field}`);
+    } catch (err) {
+      if (err.message.includes('already exists')) {
+        console.log(`   [i] Courses.${field.field} already exists, skipping.`);
       } else {
         throw err;
       }
