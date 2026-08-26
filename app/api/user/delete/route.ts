@@ -69,10 +69,21 @@ export async function POST(req: Request) {
       await db.request(deleteItems("QuizProgress", quizProgresses.map((qp) => qp.id)));
     }
 
-    // 6. Delete the user from directus_users
+    // 6. Clean UserActivityLogs to release the foreign key to directus_users
+    const activityLogs = await db.request(
+      readItems("UserActivityLogs", {
+        filter: { user_id: { _eq: userId } },
+        fields: ["id"],
+      })
+    );
+    if (activityLogs.length > 0) {
+      await db.request(deleteItems("UserActivityLogs", activityLogs.map((log) => log.id)));
+    }
+
+    // 7. Delete the user from directus_users
     await db.request(deleteUser(userId));
 
-    // 7. Delete local cookies to log the user out
+    // 8. Delete local cookies to log the user out
     const cookieStore = cookies();
     cookieStore.delete("directus_access_token");
     cookieStore.delete("directus_refresh_token");
