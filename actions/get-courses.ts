@@ -1,6 +1,7 @@
-import { db, publicDb } from "@/lib/db";
+import { publicDb } from "@/lib/db";
 import { readItems } from "@directus/sdk";
 import { getProgress } from "@/actions/get-progress";
+import { getSessionClient } from "@/lib/auth";
 
 type CourseWithProgressWithCategory = any; // Interface mapped to UI requirements
 
@@ -29,17 +30,27 @@ export const getCourses = async ({
 
     // 2. Fetch all active purchases for the current user (if logged in)
     const purchasedCourseIds = new Set<string>();
+    const sessionDb = userId ? await getSessionClient() : null;
     if (userId) {
-      const purchases = await db.request(
-        readItems("Purchases", {
-          filter: {
-            user_id: { _eq: userId },
-            status: { _eq: "active" },
-          },
-          fields: ["course_id"],
-        })
-      );
-      purchases.forEach((p) => purchasedCourseIds.add(p.course_id));
+      if (!sessionDb) {
+        console.warn("[GET_COURSES] User session is unavailable; returning the public catalog without purchase state.");
+      } else {
+        try {
+          const purchases = await sessionDb.request(
+            readItems("Purchases", {
+              filter: {
+                user_id: { _eq: userId },
+                status: { _eq: "active" },
+              },
+              fields: ["course_id"],
+            })
+          );
+          purchases.forEach((p) => purchasedCourseIds.add(p.course_id));
+        } catch (error) {
+          // Purchase state must never make the public course catalog disappear.
+          console.error("[GET_COURSE_PURCHASES_ERROR]", error);
+        }
+      }
     }
 
     // 3. Map courses and fetch their respective modules and progress
@@ -58,8 +69,8 @@ export const getCourses = async ({
         const hasPurchased = purchasedCourseIds.has(course.id);
         let progress: number | null = null;
 
-        if (hasPurchased && userId) {
-          progress = await getProgress(userId, course.id);
+        if (hasPurchased && userId && sessionDb) {
+          progress = await getProgress(userId, course.id, sessionDb);
         }
 
         const directusUrl = process.env.NEXT_PUBLIC_DIRECTUS_URL || 'https://directus-production-69c0.up.railway.app';

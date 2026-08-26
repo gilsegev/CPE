@@ -1,13 +1,17 @@
-import { db } from "@/lib/db";
+import { db, CPESchema } from "@/lib/db";
+import { DirectusClient, RestClient } from "@directus/sdk";
 import { readItems } from "@directus/sdk";
+
+type DbClient = DirectusClient<CPESchema> & RestClient<CPESchema>;
 
 export const getProgress = async (
   userId: string,
   courseId: string,
+  client: DbClient = db,
 ): Promise<number> => {
   try {
     // 1. Fetch all modules for the course
-    const modules = await db.request(
+    const modules = await client.request(
       readItems("Modules", {
         filter: {
           course_id: { _eq: courseId },
@@ -22,7 +26,7 @@ export const getProgress = async (
     }
 
     // 2. Fetch completed modules for this user that belong to this course
-    const completedProgress = await db.request(
+    const completedProgress = await client.request(
       readItems("UserProgress", {
         filter: {
           user_id: { _eq: userId },

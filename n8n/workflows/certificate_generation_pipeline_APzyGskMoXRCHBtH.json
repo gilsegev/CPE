@@ -112,7 +112,7 @@
     {
       "parameters": {
         "operation": "copy",
-        "fileId": "1F8S_-gBt6KrnV_CCj-QTk5RdFphpYIlWyJNPfOtiamU",
+        "fileId": "1EAUD92AjO1Fz3wZ6Sd9Gwz_b9JkLkCB_L9F-uR1NgBc",
         "name": "=Certificate - {{ ($('Fetch User').item.json.data.legal_name && $('Fetch User').item.json.data.legal_name !== 'null' && $('Fetch User').item.json.data.legal_name.trim() !== '') ? $('Fetch User').item.json.data.legal_name : (($('Fetch User').item.json.data.first_name || '') + ' ' + ($('Fetch User').item.json.data.last_name || '')).trim() }}",
         "sameFolder": false,
         "driveId": {
@@ -144,45 +144,27 @@
     },
     {
       "parameters": {
-        "operation": "update",
-        "documentURL": "={{ $('Copy Template').item.json.id }}",
-        "actionsUi": {
-          "actionFields": [
-            {
-              "action": "replaceAll",
-              "text": "{{legal_name}}",
-              "replaceText": "={{ ($('Fetch User').item.json.data.legal_name && $('Fetch User').item.json.data.legal_name !== 'null' && $('Fetch User').item.json.data.legal_name.trim() !== '') ? $('Fetch User').item.json.data.legal_name : (($('Fetch User').item.json.data.first_name || '') + ' ' + ($('Fetch User').item.json.data.last_name || '')).trim() }}"
-            },
-            {
-              "action": "replaceAll",
-              "text": "{{course_title}}",
-              "replaceText": "={{ $('Fetch Course').item.json.data.title }}"
-            },
-            {
-              "action": "replaceAll",
-              "text": "{{tea_id}}",
-              "replaceText": "={{ $('Fetch User').item.json.data.tea_id || 'N/A' }}"
-            },
-            {
-              "action": "replaceAll",
-              "text": "{{issued_date}}",
-              "replaceText": "={{ new Date().toLocaleDateString() }}"
-            }
-          ]
-        }
+        "method": "POST",
+        "url": "=https://slides.googleapis.com/v1/presentations/{{ $('Copy Template').item.json.id }}:batchUpdate",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "googleDriveOAuth2Api",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ { requests: [ { replaceAllText: { containsText: { text: String.fromCharCode(123,123) + 'legal_name' + String.fromCharCode(125,125), matchCase: true }, replaceText: (($('Fetch User').item.json.data.legal_name && $('Fetch User').item.json.data.legal_name !== 'null' && $('Fetch User').item.json.data.legal_name.trim() !== '') ? $('Fetch User').item.json.data.legal_name : (($('Fetch User').item.json.data.first_name || '') + ' ' + ($('Fetch User').item.json.data.last_name || '')).trim()) } }, { replaceAllText: { containsText: { text: String.fromCharCode(123,123) + 'course_title' + String.fromCharCode(125,125), matchCase: true }, replaceText: $('Fetch Course').item.json.data.title } }, { replaceAllText: { containsText: { text: String.fromCharCode(123,123) + 'issued_date' + String.fromCharCode(125,125), matchCase: true }, replaceText: new Date().toLocaleDateString() } } ] } }}",
+        "options": {}
       },
       "id": "update-gdoc-id",
       "name": "Generate Certificate Doc",
-      "type": "n8n-nodes-base.googleDocs",
-      "typeVersion": 2,
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
       "position": [
         1184,
         192
       ],
       "credentials": {
-        "googleDocsOAuth2Api": {
-          "id": "Jol2cofNtQnQPW20",
-          "name": "Google Docs account"
+        "googleDriveOAuth2Api": {
+          "id": "WmdiNZNt6QPR2Q7g",
+          "name": "Google Drive account"
         }
       }
     },
@@ -193,7 +175,7 @@
         "options": {
           "googleFileConversion": {
             "conversion": {
-              "docsToFormat": "application/pdf"
+              "slidesToFormat": "application/pdf"
             }
           }
         }

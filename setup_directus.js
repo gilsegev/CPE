@@ -579,12 +579,20 @@ async function seedAdminUsers() {
       
       if (users.length > 0) {
         const user = users[0];
+        const updatePayload = {};
         if (user.role !== adminRole.id) {
-          console.log(`   [~] Updating ${email} to have Administrator role...`);
-          await api(`/users/${user.id}`, 'PATCH', { role: adminRole.id });
-          console.log(`   [✓] Promoted ${email} to Administrator`);
+          updatePayload.role = adminRole.id;
+        }
+        if (!user.token) {
+          updatePayload.token = adminToken;
+        }
+
+        if (Object.keys(updatePayload).length > 0) {
+          console.log(`   [~] Updating ${email} in Directus...`);
+          await api(`/users/${user.id}`, 'PATCH', updatePayload);
+          console.log(`   [✓] Updated ${email}`);
         } else {
-          console.log(`   [i] User ${email} already exists as Administrator`);
+          console.log(`   [i] User ${email} already exists and is configured`);
         }
       } else {
         console.log(`   [+] Creating Administrator user: ${email}...`);
@@ -594,7 +602,8 @@ async function seedAdminUsers() {
           last_name: 'Admin',
           role: adminRole.id,
           password: 'CPEAdmin2026!',
-          status: 'active'
+          status: 'active',
+          token: adminToken
         });
         console.log(`   [✓] Created Administrator: ${email}`);
       }
