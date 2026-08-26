@@ -19,6 +19,7 @@ import { PaymentVerificationPoller } from "./_components/payment-verification-po
 import { CourseHero } from "./_components/course-hero";
 import { CourseBenefits } from "./_components/course-benefits";
 import { CourseLearningObjectives } from "./_components/course-learning-objectives";
+import { CourseContents } from "./_components/course-contents";
 import { Button } from "@/components/ui/button";
 
 const ChapterIdPage = async ({
@@ -162,6 +163,10 @@ const ChapterIdPage = async ({
             heading={courseDetails.benefitHeading}
             description={courseDetails.benefitDescription}
             benefits={courseDetails.benefits}
+          />
+          <CourseContents
+            items={courseDetails.courseContents}
+            cpeHours={courseDetails.cpeHours}
           />
           <CourseLearningObjectives objectives={courseDetails.learningObjectives} />
         </>

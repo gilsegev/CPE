@@ -9,6 +9,29 @@ const coursePresentationFields = [
   { field: "benefit_description", type: "text", meta: { interface: "textarea", note: "Short supporting copy displayed above the course benefit cards." } },
   { field: "benefits", type: "json", meta: { interface: "tags", note: "Add exactly three short course outcomes. Only the first three are displayed." } },
   { field: "learning_objectives", type: "json", meta: { interface: "tags", note: "Add three to five concise learning objectives. Only the first five are displayed." } },
+  {
+    field: "course_contents",
+    type: "json",
+    schema: {
+      default_value: [
+        { title: "Breaking Down ADHD", duration_minutes: 45, description: "Learn how ADHD affects attention, executive functioning, and behavior in the classroom." },
+        { title: "Knowledge Check", duration_minutes: 10, description: "Confirm your understanding of the course's key concepts and classroom strategies." },
+        { title: "Course Evaluation and Certificate", duration_minutes: 5, description: "Share course feedback and complete the requirements for your CPE certificate." },
+      ],
+    },
+    meta: {
+      interface: "list",
+      note: "Public, non-clickable course outline. Add a title, duration in minutes, and one-line description for each activity.",
+      options: {
+        template: "{{ title }} — {{ duration_minutes }} minutes",
+        fields: [
+          { field: "title", name: "Title", type: "string", meta: { interface: "input", required: true, width: "half" } },
+          { field: "duration_minutes", name: "Duration (minutes)", type: "integer", meta: { interface: "input", required: true, width: "half" } },
+          { field: "description", name: "One-line description", type: "text", meta: { interface: "textarea", required: true, width: "full" } },
+        ],
+      },
+    },
+  },
 ];
 
 module.exports = { coursePresentationFields };

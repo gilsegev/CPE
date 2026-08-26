@@ -14,9 +14,16 @@ export interface Course {
   benefit_description?: string;
   benefits?: string[];
   learning_objectives?: string[];
+  course_contents?: CourseContentItem[];
   price: number;
   is_published: boolean;
   thumbnail_url?: string;
+}
+
+export interface CourseContentItem {
+  title: string;
+  duration_minutes: number;
+  description: string;
 }
 
 export interface Module {

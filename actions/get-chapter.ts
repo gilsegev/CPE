@@ -1,4 +1,4 @@
-import { db } from "@/lib/db";
+import { db, type CourseContentItem } from "@/lib/db";
 import { readItems, readItem } from "@directus/sdk";
 
 interface GetChapterProps {
@@ -19,9 +19,46 @@ export interface CourseDetails {
   benefitDescription?: string | null;
   benefits: string[];
   learningObjectives: string[];
+  courseContents: CourseContentItem[];
   price: number;
   imageUrl: string | null;
 }
+
+const defaultCourseContents: CourseContentItem[] = [
+  {
+    title: "Breaking Down ADHD",
+    duration_minutes: 45,
+    description: "Learn how ADHD affects attention, executive functioning, and behavior in the classroom.",
+  },
+  {
+    title: "Knowledge Check",
+    duration_minutes: 10,
+    description: "Confirm your understanding of the course's key concepts and classroom strategies.",
+  },
+  {
+    title: "Course Evaluation and Certificate",
+    duration_minutes: 5,
+    description: "Share course feedback and complete the requirements for your CPE certificate.",
+  },
+];
+
+const parseCourseContents = (value: unknown): CourseContentItem[] => {
+  if (!Array.isArray(value)) return defaultCourseContents;
+
+  const items = value.flatMap((item) => {
+    if (!item || typeof item !== "object") return [];
+    const candidate = item as Record<string, unknown>;
+    const title = typeof candidate.title === "string" ? candidate.title.trim() : "";
+    const description = typeof candidate.description === "string" ? candidate.description.trim() : "";
+    const durationMinutes = Number(candidate.duration_minutes);
+
+    if (!title || !description || !Number.isFinite(durationMinutes) || durationMinutes <= 0) return [];
+
+    return [{ title, description, duration_minutes: durationMinutes }];
+  });
+
+  return items.length > 0 ? items : defaultCourseContents;
+};
 
 export const getChapter = async ({
   userId,
@@ -57,6 +94,7 @@ export const getChapter = async ({
           "benefit_description",
           "benefits",
           "learning_objectives",
+          "course_contents",
           "price",
           "is_published",
           "thumbnail_url",
@@ -86,6 +124,7 @@ export const getChapter = async ({
             .map((objective) => objective.trim())
             .slice(0, 5)
         : [],
+      courseContents: parseCourseContents(courseRaw.course_contents),
       price: Number(courseRaw.price) || 0,
       imageUrl: courseRaw.thumbnail_url
         ? `${process.env.NEXT_PUBLIC_DIRECTUS_URL || 'https://directus-production-69c0.up.railway.app'}/assets/${courseRaw.thumbnail_url}`
