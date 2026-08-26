@@ -12,6 +12,7 @@
  */
 
 const dns = require('dns');
+const { coursePresentationFields } = require('./scripts/course-presentation-fields');
 dns.setDefaultResultOrder('ipv4first'); // Fixes potential localhost connection issues on Node 18+
 
 const [,, directusUrl, adminToken] = process.argv;
@@ -121,6 +122,7 @@ async function main() {
         { field: 'id', type: 'uuid', schema: { is_primary_key: true }, meta: { interface: 'input', readonly: true, hidden: true, special: ['uuid'] } },
         { field: 'status', type: 'string', schema: { default_value: 'draft' }, meta: { interface: 'select-dropdown', options: { choices: [{text: 'Published', value: 'published'}, {text: 'Draft', value: 'draft'}, {text: 'Archived', value: 'archived'}] } } },
         { field: 'title', type: 'string', meta: { interface: 'input', required: true } },
+        ...coursePresentationFields,
         { field: 'description', type: 'text', meta: { interface: 'input-rich-text-html' } },
         { field: 'price', type: 'decimal', meta: { interface: 'input' } },
         { field: 'is_published', type: 'boolean', schema: { default_value: false }, meta: { interface: 'boolean' } },
@@ -241,6 +243,22 @@ async function main() {
     } catch (err) {
       if (err.message.includes('already exists')) {
         console.log(`   [i] Collection ${col.collection} already exists, skipping creation.`);
+      } else {
+        throw err;
+      }
+    }
+  }
+
+  // Collection creation is skipped on established installations, so add new
+  // course presentation fields independently to make this script an upgrade path.
+  console.log('\n3a. Ensuring configurable course presentation fields exist...');
+  for (const field of coursePresentationFields) {
+    try {
+      await api('/fields/Courses', 'POST', field);
+      console.log(`   [âœ“] Created Courses.${field.field}`);
+    } catch (err) {
+      if (err.message.includes('already exists')) {
+        console.log(`   [i] Courses.${field.field} already exists, skipping.`);
       } else {
         throw err;
       }

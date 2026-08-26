@@ -4,6 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
+    "dev:railway": "railway run node scripts/dev-with-railway.js",
     "build": "next build",
     "start": "next start",
     "lint": "next lint",

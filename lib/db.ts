@@ -4,6 +4,15 @@ export interface Course {
   id: string;
   title: string;
   description?: string;
+  subtitle?: string;
+  cpe_hours?: number;
+  estimated_duration?: string;
+  delivery_format?: string;
+  instructor?: string;
+  cta_label?: string;
+  benefit_heading?: string;
+  benefit_description?: string;
+  benefits?: string[];
   price: number;
   is_published: boolean;
   thumbnail_url?: string;

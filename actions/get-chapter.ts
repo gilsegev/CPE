@@ -7,6 +7,21 @@ interface GetChapterProps {
   chapterId: string; // Map to module_id
 }
 
+export interface CourseDetails {
+  title: string;
+  subtitle?: string | null;
+  cpeHours: number | null;
+  estimatedDuration?: string | null;
+  deliveryFormat?: string | null;
+  instructor?: string | null;
+  ctaLabel?: string | null;
+  benefitHeading?: string | null;
+  benefitDescription?: string | null;
+  benefits: string[];
+  price: number;
+  imageUrl: string | null;
+}
+
 export const getChapter = async ({
   userId,
   courseId,
@@ -26,17 +41,43 @@ export const getChapter = async ({
     ) : [];
     const purchase = purchases[0] || null;
 
-    // 2. Fetch course pricing and thumbnail for the locked chapter state
+    // 2. Fetch course marketing details for the pre-enrollment hero
     const courseRaw = await db.request(
       readItem("Courses", courseId, {
-        fields: ["price", "is_published", "thumbnail_url"],
+        fields: [
+          "title",
+          "subtitle",
+          "cpe_hours",
+          "estimated_duration",
+          "delivery_format",
+          "instructor",
+          "cta_label",
+          "benefit_heading",
+          "benefit_description",
+          "benefits",
+          "price",
+          "is_published",
+          "thumbnail_url",
+        ],
       })
     );
     if (!courseRaw || !courseRaw.is_published) {
       throw new Error("Course not found or unpublished");
     }
 
-    const course = {
+    const course: CourseDetails = {
+      title: courseRaw.title,
+      subtitle: courseRaw.subtitle,
+      cpeHours: courseRaw.cpe_hours == null ? null : Number(courseRaw.cpe_hours),
+      estimatedDuration: courseRaw.estimated_duration,
+      deliveryFormat: courseRaw.delivery_format,
+      instructor: courseRaw.instructor,
+      ctaLabel: courseRaw.cta_label,
+      benefitHeading: courseRaw.benefit_heading,
+      benefitDescription: courseRaw.benefit_description,
+      benefits: Array.isArray(courseRaw.benefits)
+        ? courseRaw.benefits.filter((benefit): benefit is string => typeof benefit === "string" && benefit.trim().length > 0).slice(0, 3)
+        : [],
       price: Number(courseRaw.price) || 0,
       imageUrl: courseRaw.thumbnail_url
         ? `${process.env.NEXT_PUBLIC_DIRECTUS_URL || 'https://directus-production-69c0.up.railway.app'}/assets/${courseRaw.thumbnail_url}`

@@ -4,7 +4,7 @@ import { redirect } from "next/navigation";
 import { File, Lock, ArrowRight } from "lucide-react";
 import Link from "next/link";
 
-import { getChapter } from "@/actions/get-chapter";
+import { getChapter, type CourseDetails } from "@/actions/get-chapter";
 import { Banner } from "@/components/banner";
 import { Separator } from "@/components/ui/separator";
 import { Preview } from "@/components/preview";
@@ -12,11 +12,12 @@ import { db } from "@/lib/db";
 import { readItems } from "@directus/sdk";
 
 import { VideoPlayer } from "./_components/video-player";
-import { CourseEnrollButton } from "./_components/course-enroll-button";
 import { CourseProgressButton } from "./_components/course-progress-button";
 import { QuizAssessment } from "./_components/quiz-assessment";
 import { EssayAssessment } from "./_components/essay-assessment";
 import { PaymentVerificationPoller } from "./_components/payment-verification-poller";
+import { CourseHero } from "./_components/course-hero";
+import { CourseBenefits } from "./_components/course-benefits";
 import { Button } from "@/components/ui/button";
 
 const ChapterIdPage = async ({
@@ -47,6 +48,7 @@ const ChapterIdPage = async ({
   if (!chapter || !course) {
     return redirect("/")
   }
+  const courseDetails = course as CourseDetails;
 
   if (searchParams.success === "1" && userId) {
     // Log server-side purchase success event to ensure it is always logged even if verification is fast
@@ -147,22 +149,37 @@ const ChapterIdPage = async ({
 
   return ( 
     <div>
+      {!purchase && (
+        <>
+          <CourseHero
+            course={course}
+            courseId={params.courseId}
+            chapterId={params.chapterId}
+            isLoggedIn={!!userId}
+          />
+          <CourseBenefits
+            heading={courseDetails.benefitHeading}
+            description={courseDetails.benefitDescription}
+            benefits={courseDetails.benefits}
+          />
+        </>
+      )}
       {userProgress?.isCompleted && chapter.type === "video" && (
         <Banner
           variant="success"
           label="You already completed this chapter."
         />
       )}
-      {isLocked && (
+      {isLocked && purchase && (
         <Banner
           variant="warning"
-          label={purchase ? "This module is locked. Please complete all preceding modules first." : "You need to purchase this course to access this chapter."}
+          label="This module is locked. Please complete all preceding modules first."
         />
       )}
       {searchParams.success === "1" && !purchase && (
         <PaymentVerificationPoller courseId={params.courseId} />
       )}
-      <div className="flex flex-col max-w-7xl mx-auto pb-20">
+      {purchase && <div className="flex flex-col max-w-7xl mx-auto pb-20">
         {isLocked && (chapter.type === "quiz" || chapter.type === "essay") ? (
           <div className="p-4 flex flex-col items-center justify-center min-h-[400px] text-center bg-slate-50 border border-slate-200 rounded-xl mt-6 mx-4">
             <Lock className="h-12 w-12 text-slate-400 mb-4 animate-pulse" />
@@ -243,25 +260,6 @@ const ChapterIdPage = async ({
                   <div className="p-4">
                     <Preview value={chapter.description!} />
                   </div>
-                  {!purchase && (
-                    <div className="p-4 mt-4">
-                      <div className="bg-[#18223b]/5 dark:bg-[#1a2333]/40 border border-[#18223b]/20 dark:border-[#2d3a5a] rounded-xl p-6 md:p-8 flex flex-col items-center text-center max-w-3xl mx-auto shadow-md">
-                        <span className="text-3xl mb-3">🔒</span>
-                        <h3 className="text-xl font-bold text-slate-800 dark:text-white">
-                          Unlock the Full Continuing Education Track
-                        </h3>
-                        <p className="text-sm text-slate-500 dark:text-slate-400 mt-2 mb-6 max-w-xl">
-                          Enroll today to gain full access to all modules, compliance quizzes, case studies, and your official CPE Certificate.
-                        </p>
-                        <CourseEnrollButton
-                          courseId={params.courseId}
-                          price={(course as any).price}
-                          isLoggedIn={!!userId}
-                          chapterId={params.chapterId}
-                        />
-                      </div>
-                    </div>
-                  )}
                   {!!attachments.length && (
                     <>
                       <Separator />
@@ -287,7 +285,7 @@ const ChapterIdPage = async ({
             )}
           </>
         )}
-      </div>
+      </div>}
     </div>
    );
 }
