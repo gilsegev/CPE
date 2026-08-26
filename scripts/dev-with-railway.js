@@ -48,20 +48,6 @@ async function syncCoursePresentationFields() {
 }
 
 async function syncInstructorPhotoRelation() {
-  const relationUrl = new URL("/relations/Courses/instructor_photo", directusUrl);
-  const relationResponse = await fetch(relationUrl, {
-    headers: { Authorization: `Bearer ${adminToken}` },
-    cache: "no-store",
-  });
-
-  if (relationResponse.ok) {
-    return;
-  }
-
-  if (relationResponse.status !== 404) {
-    throw new Error(`Directus relation check failed with status ${relationResponse.status}.`);
-  }
-
   const createResponse = await fetch(new URL("/relations", directusUrl), {
     method: "POST",
     headers: {
@@ -76,6 +62,13 @@ async function syncInstructorPhotoRelation() {
   });
 
   if (!createResponse.ok) {
+    const payload = await createResponse.json();
+    const message = payload?.errors?.[0]?.message || "";
+
+    if (createResponse.status === 400 && message.includes("already has an associated relationship")) {
+      return;
+    }
+
     throw new Error(`Could not create Directus relation Courses.instructor_photo (status ${createResponse.status}).`);
   }
 

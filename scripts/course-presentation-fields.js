@@ -15,13 +15,6 @@ const coursePresentationFields = [
   {
     field: "course_contents",
     type: "json",
-    schema: {
-      default_value: [
-        { title: "Breaking Down ADHD", duration_minutes: 45, description: "Learn how ADHD affects attention, executive functioning, and behavior in the classroom." },
-        { title: "Knowledge Check", duration_minutes: 10, description: "Confirm your understanding of the course's key concepts and classroom strategies." },
-        { title: "Course Evaluation and Certificate", duration_minutes: 5, description: "Share course feedback and complete the requirements for your CPE certificate." },
-      ],
-    },
     meta: {
       interface: "list",
       note: "Public, non-clickable course outline. Add a title, duration in minutes, and one-line description for each activity.",
