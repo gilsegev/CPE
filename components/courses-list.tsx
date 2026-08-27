@@ -13,6 +13,10 @@ interface Course {
   price: number;
   progress: number | null;
   category: Category | null;
+  cpeValue?: number;
+  completionId?: string | null;
+  feedbackSubmitted?: boolean;
+  certificate?: { status?: string; pdfUrl?: string | null } | null;
 }
 
 type CourseWithProgressWithCategory = Course;
@@ -37,6 +41,10 @@ export const CoursesList = ({
             price={item.price!}
             progress={item.progress}
             category={item?.category?.name!}
+            cpeValue={item.cpeValue}
+            certificateStatus={item.certificate?.status}
+            completionId={item.completionId}
+            feedbackSubmitted={item.feedbackSubmitted}
           />
         ))}
       </div>

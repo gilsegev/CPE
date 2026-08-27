@@ -14,13 +14,15 @@ interface CourseProgressButtonProps {
   courseId: string;
   isCompleted?: boolean;
   nextChapterId?: string;
+  isV2?: boolean;
 };
 
 export const CourseProgressButton = ({
   chapterId,
   courseId,
   isCompleted,
-  nextChapterId
+  nextChapterId,
+  isV2 = false,
 }: CourseProgressButtonProps) => {
   const router = useRouter();
   const confetti = useConfettiStore();
@@ -31,14 +33,14 @@ export const CourseProgressButton = ({
       setIsLoading(true);
 
       await axios.put(`/api/courses/${courseId}/chapters/${chapterId}/progress`, {
-        isCompleted: !isCompleted
+        ...(isV2 ? {} : { isCompleted: !isCompleted })
       });
 
-      if (!isCompleted && !nextChapterId) {
+      if (!isV2 && !isCompleted && !nextChapterId) {
         confetti.onOpen();
       }
 
-      toast.success("Progress updated");
+      toast.success(isV2 ? "Module content completed" : "Progress updated");
       router.refresh();
     } catch {
       toast.error("Something went wrong");
@@ -47,7 +49,7 @@ export const CourseProgressButton = ({
     }
   }
 
-  const Icon = isCompleted ? XCircle : CheckCircle
+  const Icon = !isV2 && isCompleted ? XCircle : CheckCircle
 
   return (
     <Button
@@ -57,7 +59,7 @@ export const CourseProgressButton = ({
       variant={isCompleted ? "outline" : "success"}
       className="w-full md:w-auto"
     >
-      {isCompleted ? "Not completed" : "Mark as complete"}
+      {isV2 ? "Mark as complete" : isCompleted ? "Not completed" : "Mark as complete"}
       <Icon className="h-4 w-4 ml-2" />
     </Button>
   )

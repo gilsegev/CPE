@@ -28,6 +28,9 @@ yarn-error.log*
 .env*.local
 .env
 
+# local migration manifests may contain opaque learner identifiers
+/migration/manifests/*.local.json
+
 # vercel
 .vercel
 

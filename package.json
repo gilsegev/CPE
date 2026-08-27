@@ -9,7 +9,13 @@
     "start": "next start",
     "lint": "next lint",
     "n8n:pull": "node scripts/n8n-sync.js pull",
-    "n8n:push": "node scripts/n8n-sync.js push"
+    "n8n:push": "node scripts/n8n-sync.js push",
+    "migration:module-courses": "node scripts/module-course-migration/index.js",
+    "test:migration": "node --test scripts/module-course-migration/*.test.js",
+    "test:completion": "node --test lib/course-completion-rules.test.js",
+    "test:feedback": "node --test lib/feedback-rules.test.js",
+    "test:certificate-workflow": "node --test n8n/workflows/certificate-workflow.test.js",
+    "test": "npm run test:migration && npm run test:completion && npm run test:feedback && npm run test:certificate-workflow"
   },
   "dependencies": {
     "@directus/sdk": "^21.3.0",
@@ -40,6 +46,7 @@
     "lucide-react": "^0.276.0",
     "next": "13.4.12",
     "postcss": "8.4.29",
+    "pg": "^8.16.3",
     "query-string": "^8.1.0",
     "react": "18.2.0",
     "react-confetti": "^6.1.0",

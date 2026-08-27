@@ -1,7 +1,15 @@
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { readItems, createItem, updateItem } from "@directus/sdk";
+import { readItem, readItems, createItem, updateItem } from "@directus/sdk";
+import {
+  CourseWorkflowError,
+  getOrStartQuizState,
+  startQuizRetake,
+  submitQuizAnswer,
+  submitQuizAttempt,
+} from "@/lib/course-completion";
+import { logServerEvent } from "@/lib/observability";
 
 export async function GET(
   req: Request,
@@ -11,6 +19,13 @@ export async function GET(
     const user = await getCurrentUser();
     if (!user) {
       return new NextResponse("Unauthorized", { status: 401 });
+    }
+
+    const course = await db.request(
+      readItem("Courses", params.courseId, { fields: ["id", "structure_version"] }),
+    );
+    if (course.structure_version === "module_quiz_v2") {
+      return NextResponse.json(await getOrStartQuizState(user, params.courseId, params.chapterId));
     }
 
     // 1. Fetch Quiz record linked to this module
@@ -89,6 +104,9 @@ export async function GET(
       passingScore: quiz.passing_score,
     });
   } catch (error) {
+    if (error instanceof CourseWorkflowError) {
+      return NextResponse.json({ error: error.code, message: error.message }, { status: error.status });
+    }
     console.error("[QUIZ_GET]", error);
     return new NextResponse("Internal Error", { status: 500 });
   }
@@ -104,7 +122,46 @@ export async function POST(
       return new NextResponse("Unauthorized", { status: 401 });
     }
 
-    const { action, questionId, answerIndex } = await req.json();
+    const { action, questionId, answerIndex, attemptId } = await req.json();
+
+    const course = await db.request(
+      readItem("Courses", params.courseId, { fields: ["id", "structure_version"] }),
+    );
+    if (course.structure_version === "module_quiz_v2") {
+      if (action === "submit-answer") {
+        if (typeof attemptId !== "string" || typeof questionId !== "string") {
+          return new NextResponse("attemptId and questionId are required", { status: 400 });
+        }
+        return NextResponse.json(await submitQuizAnswer(user, params.courseId, params.chapterId, {
+          attemptId,
+          questionId,
+          answerIndex,
+        }));
+      }
+      if (action === "submit-quiz") {
+        if (typeof attemptId !== "string") return new NextResponse("attemptId is required", { status: 400 });
+        const result = await submitQuizAttempt(user, params.courseId, params.chapterId, attemptId);
+        await logServerEvent(
+          "quiz_attempt_submitted",
+          `/courses/${params.courseId}/chapters/${params.chapterId}/quiz`,
+          { courseId: params.courseId, moduleId: params.chapterId, attemptId, score: result.score, passed: result.passed },
+          user.id,
+        );
+        if (result.courseCompletion) {
+          await logServerEvent(
+            "course_completed",
+            `/courses/${params.courseId}/chapters/${params.chapterId}/quiz`,
+            { courseId: params.courseId, completionId: result.courseCompletion.id, cpeEarned: result.courseCompletion.cpeEarned },
+            user.id,
+          );
+        }
+        return NextResponse.json(result);
+      }
+      if (action === "reset") {
+        return NextResponse.json(await startQuizRetake(user, params.courseId, params.chapterId));
+      }
+      return new NextResponse("Bad Request", { status: 400 });
+    }
 
     // Fetch existing QuizProgress, creating it on demand if missing
     const progresses = await db.request(
@@ -282,6 +339,9 @@ export async function POST(
 
     return new NextResponse("Bad Request", { status: 400 });
   } catch (error) {
+    if (error instanceof CourseWorkflowError) {
+      return NextResponse.json({ error: error.code, message: error.message }, { status: error.status });
+    }
     console.error("[QUIZ_POST]", error);
     return new NextResponse("Internal Error", { status: 500 });
   }

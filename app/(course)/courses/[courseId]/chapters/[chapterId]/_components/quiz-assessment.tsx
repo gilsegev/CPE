@@ -1,12 +1,14 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
+import { useRouter } from "next/navigation";
 import axios from "axios";
 import toast from "react-hot-toast";
 import { Check, X, ArrowLeft, ArrowRight, RefreshCw, Trophy, AlertCircle, HelpCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useConfettiStore } from "@/hooks/use-confetti-store";
 import { cn } from "@/lib/utils";
+import { CourseFeedbackSurvey } from "@/components/course-feedback-survey";
 
 interface Question {
   id: string;
@@ -17,24 +19,42 @@ interface Question {
 
 interface QuizAssessmentProps {
   courseId: string;
+  courseTitle: string;
   chapterId: string;
   nextChapterId?: string;
   initialData: {
+    attemptId?: string;
+    attemptNumber?: number;
     isCompleted: boolean;
+    score?: number | null;
+    passed?: boolean | null;
     answers: Record<string, number>;
     questions: Question[];
     correctAnswers: Record<string, { correctIndex: number; explanation: string }>;
     passingScore: number;
+    courseCompletion?: {
+      id: string;
+      completedAt: string;
+      cpeEarned: number;
+      certificate: {
+        id: string;
+        status?: "pending" | "processing" | "issued" | "delivered" | "failed";
+        pdfUrl?: string | null;
+        issuedDate?: string | null;
+      };
+    } | null;
   };
 }
 
 export const QuizAssessment = ({
   courseId,
+  courseTitle,
   chapterId,
   nextChapterId,
   initialData,
 }: QuizAssessmentProps) => {
   const confetti = useConfettiStore();
+  const router = useRouter();
 
   const [questions, setQuestions] = useState<Question[]>(initialData.questions);
   const [answers, setAnswers] = useState<Record<string, number>>(initialData.answers);
@@ -42,9 +62,13 @@ export const QuizAssessment = ({
     Record<string, { correctIndex: number; explanation: string }>
   >(initialData.correctAnswers);
   const [isCompleted, setIsCompleted] = useState<boolean>(initialData.isCompleted);
+  const [attemptId] = useState(initialData.attemptId || "");
+  const [courseCompletion, setCourseCompletion] = useState(initialData.courseCompletion || null);
+  const [showCompletionSurvey, setShowCompletionSurvey] = useState(false);
 
   // Score states (loaded after quiz submission)
   const [score, setScore] = useState<number | null>(() => {
+    if (initialData.score != null) return initialData.score;
     if (initialData.isCompleted && questions.length > 0) {
       let correct = 0;
       questions.forEach((q) => {
@@ -71,49 +95,6 @@ export const QuizAssessment = ({
 
   const [selectedOption, setSelectedOption] = useState<number | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
-
-  useEffect(() => {
-    const fetchQuizData = async () => {
-      try {
-        const response = await axios.get(`/api/courses/${courseId}/chapters/${chapterId}/quiz`);
-        if (response.data) {
-          setQuestions(response.data.questions || []);
-          setAnswers(response.data.answers || {});
-          setCorrectAnswers(response.data.correctAnswers || {});
-          setIsCompleted(response.data.isCompleted || false);
-          
-          if (response.data.isCompleted && response.data.questions?.length > 0) {
-            let correct = 0;
-            response.data.questions.forEach((q: Question) => {
-              if (
-                response.data.answers[q.id] !== undefined &&
-                response.data.correctAnswers[q.id]?.correctIndex === response.data.answers[q.id]
-              ) {
-                correct++;
-              }
-            });
-            setScore(Math.round((correct / response.data.questions.length) * 100));
-          } else {
-            setScore(null);
-          }
-
-          if (!response.data.isCompleted && response.data.questions) {
-            const firstUnanswered = response.data.questions.findIndex((q: Question) => !(q.id in response.data.answers));
-            setCurrentIndex(firstUnanswered === -1 ? 0 : firstUnanswered);
-          } else {
-            setCurrentIndex(0);
-          }
-        }
-      } catch (err) {
-        console.error("Failed to load quiz client-side", err);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-    fetchQuizData();
-  }, [courseId, chapterId]);
-
   const currentQuestion = questions[currentIndex];
   const isQuestionAnswered = currentQuestion?.id in answers;
   const userAnswer = answers[currentQuestion?.id];
@@ -133,6 +114,7 @@ export const QuizAssessment = ({
         `/api/courses/${courseId}/chapters/${chapterId}/quiz`,
         {
           action: "submit-answer",
+          attemptId,
           questionId: currentQuestion.id,
           answerIndex: selectedOption,
         }
@@ -174,14 +156,18 @@ export const QuizAssessment = ({
         `/api/courses/${courseId}/chapters/${chapterId}/quiz`,
         {
           action: "submit-quiz",
+          attemptId,
         }
       );
 
-      const { score: finalScore, passed } = response.data;
+      const { score: finalScore, passed, courseCompletion: completedCourse } = response.data;
       setScore(finalScore);
       setIsCompleted(true);
+      setCourseCompletion(completedCourse || null);
+      setShowCompletionSurvey(Boolean(completedCourse));
 
       if (passed) {
+        router.refresh();
         confetti.onOpen();
         toast.success(`Congratulations! You passed with ${finalScore}%`);
       } else {
@@ -234,21 +220,14 @@ export const QuizAssessment = ({
   };
 
   const onContinue = () => {
-    if (nextChapterId) {
+    if (courseCompletion) {
+      window.location.assign(`/`);
+    } else if (nextChapterId) {
       window.location.assign(`/courses/${courseId}/chapters/${nextChapterId}`);
     } else {
       window.location.assign(`/`);
     }
   };
-
-  if (isLoading) {
-    return (
-      <div className="max-w-2xl mx-auto p-5 md:p-6 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/80 shadow-md mt-6 flex flex-col items-center justify-center min-h-[300px]">
-        <RefreshCw className="h-8 w-8 text-indigo-500 animate-spin mb-4" />
-        <span className="text-sm text-slate-500 font-medium">Loading quiz state...</span>
-      </div>
-    );
-  }
 
   if (questions.length === 0) {
     return (
@@ -263,7 +242,8 @@ export const QuizAssessment = ({
   // Render Pass/Fail screen when quiz is completed
   if (isCompleted && score !== null) {
     const passed = score >= initialData.passingScore;
-    const courseCompleted = passed && !nextChapterId;
+    const courseCompleted = Boolean(courseCompletion) || (passed && !nextChapterId && !attemptId);
+    const certificateStatus = courseCompletion?.certificate.status || "pending";
 
     return (
       <div className="max-w-2xl mx-auto p-6 md:p-8 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/80 shadow-xl mt-6 transition-all duration-300">
@@ -284,9 +264,9 @@ export const QuizAssessment = ({
 
           <p className="text-slate-500 mt-2 max-w-sm">
             {courseCompleted
-              ? "Congratulations! You completed the course. Your certificate will be emailed to you."
+              ? `Congratulations! You completed ${courseTitle} and earned ${courseCompletion?.cpeEarned ?? "your"} CPE credit${courseCompletion?.cpeEarned === 1 ? "" : "s"}. Your certificate is ${certificateStatus === "delivered" ? "delivered" : certificateStatus === "failed" ? "awaiting an administrator retry" : "being prepared"}.`
               : passed
-              ? "Great job! You have satisfied the 80% passing requirement and unlocked the Final Assessment."
+              ? "Great job! You met the passing requirement and unlocked the next module."
               : `You scored ${score}%. A passing rate of ${initialData.passingScore}% is required. Please review explanations and try again.`}
           </p>
 
@@ -299,9 +279,33 @@ export const QuizAssessment = ({
               {score}%
             </div>
             <div className="text-xs text-slate-500 mt-2">
-              Required: {initialData.passingScore}% (e.g. 4/5 questions)
+              Required: {initialData.passingScore}%
             </div>
           </div>
+
+          {courseCompleted && courseCompletion?.certificate.pdfUrl && (
+            <a
+              href={courseCompletion.certificate.pdfUrl}
+              target="_blank"
+              rel="noreferrer"
+              className="mb-6 text-sm font-semibold text-emerald-700 underline underline-offset-4"
+            >
+              View certificate
+            </a>
+          )}
+
+          {courseCompleted && showCompletionSurvey && (
+            <div className="mb-6 w-full rounded-xl border border-indigo-100 bg-indigo-50/60 p-4 text-left">
+              <h3 className="font-semibold text-slate-900">Help improve this course</h3>
+              <p className="mb-3 mt-1 text-sm text-slate-600">This optional survey does not affect your CPE credit or certificate.</p>
+              <CourseFeedbackSurvey
+                courseId={courseId}
+                courseTitle={courseTitle}
+                initiallyOpen
+                onClosed={() => setShowCompletionSurvey(false)}
+              />
+            </div>
+          )}
 
           <div className="flex flex-col sm:flex-row gap-4 w-full justify-center">
             {!passed && (

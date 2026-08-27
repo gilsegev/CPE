@@ -25,6 +25,7 @@ export interface Course {
   price: number;
   is_published: boolean;
   thumbnail_url?: string;
+  structure_version?: 'legacy' | 'module_quiz_v2';
 }
 
 export interface CourseContentItem {
@@ -41,6 +42,8 @@ export interface Module {
   mux_asset_id?: string;
   is_free_preview: boolean;
   type?: 'video' | 'quiz' | 'essay';
+  cpe_value?: number | null;
+  migration_status?: 'legacy' | 'v2_content' | 'migrated_quiz_shell' | 'legacy_essay_history';
 }
 
 export interface Purchase {
@@ -55,6 +58,7 @@ export interface Quiz {
   id: string;
   module_id: string;
   passing_score: number;
+  is_enabled?: boolean;
 }
 
 export interface Question {
@@ -64,6 +68,7 @@ export interface Question {
   options: string[];
   correct_answer_index: number;
   explanation?: string;
+  order_index?: number;
 }
 
 export interface Submission {
@@ -79,8 +84,18 @@ export interface Certificate {
   id: string;
   user_id: string;
   course_id: string;
-  pdf_url: string;
-  issued_date: string;
+  pdf_url: string | null;
+  issued_date: string | null;
+  completion_id?: string | null;
+  status?: 'pending' | 'processing' | 'issued' | 'delivered' | 'failed';
+  legal_name_snapshot?: string | null;
+  course_title_snapshot?: string | null;
+  cpe_earned?: number | null;
+  emailed_at?: string | null;
+  attempt_count?: number;
+  last_attempt_at?: string | null;
+  failure_code?: string | null;
+  failure_detail?: string | null;
 }
 
 export interface DirectusUser {
@@ -114,6 +129,9 @@ export interface UserProgress {
   is_completed: boolean;
   user_id: string;
   module_id: string;
+  content_completed_at?: string | null;
+  quiz_passed_at?: string | null;
+  completed_at?: string | null;
 }
 
 export interface QuizProgress {
@@ -122,6 +140,49 @@ export interface QuizProgress {
   is_completed: boolean;
   user_id: string;
   module_id: string;
+}
+
+export interface QuizAttempt {
+  id: string;
+  user_id: string;
+  quiz_id: string;
+  attempt_number: number;
+  status: 'in_progress' | 'submitted' | 'abandoned';
+  answers: Record<string, number>;
+  result_snapshot?: unknown;
+  score?: number | null;
+  passed?: boolean | null;
+  started_at: string;
+  submitted_at?: string | null;
+}
+
+export interface CourseCompletion {
+  id: string;
+  user_id: string;
+  course_id: string;
+  completed_at: string;
+  cpe_earned: number;
+  module_snapshot: Array<Record<string, unknown>>;
+  final_quiz_attempt_id: string;
+}
+
+export interface FeedbackResponse {
+  id: string;
+  completion_id: string;
+  user_id: string;
+  course_id: string;
+  knowledge_before: number;
+  knowledge_after: number;
+  relevance: number;
+  instructional_effectiveness: number;
+  intent_to_apply?: number | null;
+  intent_not_applicable: boolean;
+  planned_application?: string | null;
+  most_helpful?: string | null;
+  improvement?: string | null;
+  technical_issues: string[];
+  technical_issue_detail?: string | null;
+  submitted_at: string;
 }
 
 export type CPESchema = {
@@ -134,6 +195,9 @@ export type CPESchema = {
   Certificates: Certificate[];
   UserProgress: UserProgress[];
   QuizProgress: QuizProgress[];
+  QuizAttempts: QuizAttempt[];
+  CourseCompletions: CourseCompletion[];
+  FeedbackResponses: FeedbackResponse[];
   UserActivityLogs: UserActivityLog[];
 };
 

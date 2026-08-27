@@ -1,0 +1,35 @@
+{
+  "manifestVersion": 1,
+  "generatedAt": "replace-with-generated-value",
+  "source": "Directus legacy course inventory",
+  "courses": [
+    {
+      "courseId": "replace-with-course-id",
+      "title": "Example course",
+      "legacyCourseCpe": 1,
+      "action": "migrate",
+      "approval": {
+        "approved": true,
+        "approvedBy": "Course owner name",
+        "approvedAt": "2026-08-26T00:00:00.000Z"
+      },
+      "contentModules": [
+        {
+          "moduleId": "replace-with-content-module-id",
+          "title": "Example module",
+          "legacyOrderIndex": 1,
+          "cpeValue": 1
+        }
+      ],
+      "quizMappings": [
+        {
+          "quizId": "replace-with-quiz-id",
+          "legacyQuizModuleId": "replace-with-legacy-quiz-module-id",
+          "approvedContentModuleId": "replace-with-content-module-id"
+        }
+      ],
+      "excludedLegacyModules": [],
+      "certificateSelections": []
+    }
+  ]
+}

@@ -11,6 +11,8 @@ export async function middleware(request: NextRequest) {
     pathname.startsWith("/api/auth/callback") ||
     pathname.startsWith("/api/webhook") ||
     pathname.startsWith("/api/observability") ||
+    /^\/api\/courses\/[^/]+\/feedback$/.test(pathname) ||
+    pathname.startsWith("/dev/feedback-preview") ||
     pathname.startsWith("/search") ||
     pathname.startsWith("/courses") ||
     pathname === "/"; // Home landing page is public

@@ -1,6 +1,7 @@
 import { db, publicDb } from "@/lib/db";
 import { readItems } from "@directus/sdk";
 import { getProgress } from "@/actions/get-progress";
+import { isV2ContentModule } from "@/lib/course-completion-rules";
 
 type CourseWithProgressWithCategory = any; // Interface mapped to UI requirements
 
@@ -23,7 +24,7 @@ export const getCourses = async ({
           is_published: { _eq: true },
           ...(title ? { title: { _icontains: title } } : {}),
         },
-        fields: ["id", "title", "description", "price", "is_published", "thumbnail_url"],
+        fields: ["id", "title", "description", "price", "is_published", "thumbnail_url", "structure_version"],
       })
     );
 
@@ -47,15 +48,17 @@ export const getCourses = async ({
       courses.map(async (course) => {
         // Count protected video modules as chapters without exposing their content publicly.
         // Quizzes and essay assessments are course activities, not chapters.
-        const modules = await db.request(
+        const allModules = await db.request(
           readItems("Modules", {
             filter: {
               course_id: { _eq: course.id },
-              type: { _eq: "video" },
             },
-            fields: ["id"],
+            fields: ["id", "type", "migration_status"],
           })
         );
+        const modules = course.structure_version === "module_quiz_v2"
+          ? allModules.filter(isV2ContentModule)
+          : allModules.filter((module) => module.type === "video");
 
         const hasPurchased = purchasedCourseIds.has(course.id);
         let progress: number | null = null;

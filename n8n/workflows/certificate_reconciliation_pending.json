@@ -1,0 +1,59 @@
+{
+  "id": "CertReconcileV2",
+  "name": "Certificate Reconciliation",
+  "active": false,
+  "nodes": [
+    {
+      "parameters": { "rule": { "interval": [{ "field": "hours", "hoursInterval": 1 }] } },
+      "id": "hourly-schedule",
+      "name": "Hourly Schedule",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [160, 240]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.CPE_APP_URL + '/api/internal/certificates/reconcile' }}",
+        "sendHeaders": true,
+        "headerParameters": { "parameters": [{ "name": "Authorization", "value": "={{ 'Bearer ' + $env.CERTIFICATE_RECONCILIATION_SECRET }}" }] },
+        "options": {}
+      },
+      "id": "reconcile-state",
+      "name": "Reconcile Certificate State",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [368, 240],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000
+    },
+    {
+      "parameters": { "jsCode": "const ids = Array.isArray($json.pendingCertificateIds) ? $json.pendingCertificateIds : [];\nreturn ids.map(certificateId => ({ json: { certificateId } }));" },
+      "id": "pending-work-items",
+      "name": "Pending Work Items",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [576, 240]
+    },
+    {
+      "parameters": {
+        "workflowId": { "__rl": true, "value": "APzyGskMoXRCHBtH", "mode": "id" },
+        "options": { "waitForSubWorkflow": true }
+      },
+      "id": "run-certificate-worker",
+      "name": "Run Certificate Worker",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.2,
+      "position": [784, 240]
+    }
+  ],
+  "connections": {
+    "Hourly Schedule": { "main": [[{ "node": "Reconcile Certificate State", "type": "main", "index": 0 }]] },
+    "Reconcile Certificate State": { "main": [[{ "node": "Pending Work Items", "type": "main", "index": 0 }]] },
+    "Pending Work Items": { "main": [[{ "node": "Run Certificate Worker", "type": "main", "index": 0 }]] }
+  },
+  "settings": { "executionOrder": "v1" },
+  "staticData": null,
+  "meta": { "templateCredsSetupCompleted": true }
+}

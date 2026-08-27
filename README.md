@@ -42,6 +42,10 @@ git clone https://github.com/AntonioErdeljac/next13-lms-platform.git
 npm i
 ```
 
+The Directus module-course schema and course-scoped content migration are operated with `npm run migration:module-courses`; read the [Module-Based Course Migration Runbook](./docs/MODULE%20COURSE%20MIGRATION%20RUNBOOK.md) before running it against shared data.
+
+The v2 completion, certificate, feedback, and administrator-observability lifecycle is operated with the [Course Completion and Certificate Runbook](./docs/COURSE%20COMPLETION%20AND%20CERTIFICATE%20RUNBOOK.md). It covers deployment order, administrator reporting and retries, reconciliation, survey verification, and replay/concurrency verification.
+
 ### Setup .env file
 
 
@@ -85,6 +89,8 @@ npx prisma db push
 ```shell
 npm run dev
 ```
+
+To inspect the completion survey, dashboard feedback states, and administrator feedback reporting without completing a course, open [http://localhost:3000/dev/feedback-preview](http://localhost:3000/dev/feedback-preview). The localhost preview uses fixtures and suppresses survey, retry, and telemetry writes. Non-local access returns `404` unless `ENABLE_DEV_PREVIEWS=true` is explicitly configured.
 
 ## Available commands
 

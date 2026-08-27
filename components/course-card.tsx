@@ -5,6 +5,8 @@ import { BookOpen } from "lucide-react";
 import { IconBadge } from "@/components/icon-badge";
 import { formatPrice } from "@/lib/format";
 import { CourseProgress } from "@/components/course-progress";
+import { CourseFeedbackSurvey } from "@/components/course-feedback-survey";
+import { CheckCircle } from "lucide-react";
 
 interface CourseCardProps {
   id: string;
@@ -14,6 +16,10 @@ interface CourseCardProps {
   price: number;
   progress: number | null;
   category: string;
+  cpeValue?: number;
+  certificateStatus?: string;
+  completionId?: string | null;
+  feedbackSubmitted?: boolean;
 };
 
 export const CourseCard = ({
@@ -23,11 +29,15 @@ export const CourseCard = ({
   chaptersLength,
   price,
   progress,
-  category
+  category,
+  cpeValue,
+  certificateStatus,
+  completionId,
+  feedbackSubmitted = false,
 }: CourseCardProps) => {
   return (
-    <Link href={`/courses/${id}`}>
-      <div className="group hover:shadow-md transition overflow-hidden border border-slate-100 rounded-[var(--radius)] p-3 h-full bg-white">
+    <div className="group hover:shadow-md transition overflow-hidden border border-slate-100 rounded-[var(--radius)] p-3 h-full bg-white">
+      <Link href={`/courses/${id}`} className="block">
         <div className="relative w-full aspect-video rounded-md overflow-hidden bg-slate-100">
           {imageUrl ? (
             <Image
@@ -53,23 +63,41 @@ export const CourseCard = ({
             <div className="flex items-center gap-x-1 text-slate-500">
               <IconBadge size="sm" icon={BookOpen} />
               <span>
-                {chaptersLength} {chaptersLength === 1 ? "Chapter" : "Chapters"}
+                {chaptersLength} {chaptersLength === 1 ? "Module" : "Modules"}
               </span>
             </div>
           </div>
           {progress !== null ? (
-            <CourseProgress
-              variant={progress === 100 ? "success" : "default"}
-              size="sm"
-              value={progress}
-            />
+            <div className="space-y-2">
+              <CourseProgress
+                variant={progress === 100 ? "success" : "default"}
+                size="sm"
+                value={progress}
+              />
+              {certificateStatus && (
+                <p className="text-xs font-medium text-slate-600">
+                  {cpeValue} CPE · Certificate {certificateStatus}
+                </p>
+              )}
+            </div>
           ) : (
             <p className="text-md md:text-sm font-medium text-slate-700">
               {formatPrice(price)}
             </p>
           )}
         </div>
-      </div>
-    </Link>
+      </Link>
+      {completionId && (
+        <div className="mt-3 border-t border-slate-100 pt-3">
+          {feedbackSubmitted ? (
+            <p className="flex items-center gap-2 text-xs font-medium text-emerald-700">
+              <CheckCircle className="h-4 w-4" /> Thank you for your feedback
+            </p>
+          ) : (
+            <CourseFeedbackSurvey courseId={id} courseTitle={title} compact />
+          )}
+        </div>
+      )}
+    </div>
   )
 }

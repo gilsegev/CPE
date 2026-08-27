@@ -4,232 +4,191 @@
   "active": false,
   "nodes": [
     {
-      "parameters": {
-        "httpMethod": "POST",
-        "path": "approved-certificate",
-        "options": {}
-      },
-      "id": "webhook-trigger-id",
-      "name": "Directus Webhook",
+      "parameters": { "httpMethod": "POST", "path": "pending-certificate", "options": {} },
+      "id": "certificate-webhook",
+      "name": "Certificate Webhook",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 1,
-      "position": [
-        112,
-        240
-      ],
+      "position": [80, 180],
       "webhookId": "4744f850-7598-438b-93bd-f2d8329ab0cd"
     },
     {
-      "parameters": {
-        "conditions": {
-          "string": [
-            {
-              "value1": "={{ $json.body.payload?.status }}",
-              "value2": "Approved"
-            },
-            {
-              "value1": "={{ $json.body.collection }}",
-              "value2": "Submissions"
-            }
-          ]
-        }
-      },
-      "id": "status-check-id",
-      "name": "Check Approved Status",
-      "type": "n8n-nodes-base.if",
+      "parameters": {},
+      "id": "reconciliation-trigger",
+      "name": "Reconciliation Trigger",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
       "typeVersion": 1,
-      "position": [
-        288,
-        240
-      ]
+      "position": [80, 320]
     },
     {
       "parameters": {
-        "url": "=https://directus-production-69c0.up.railway.app/items/Submissions/{{ $json.body.keys[0] }}",
+        "jsCode": "const input = $json.body || $json;\nconst certificateId = input.certificateId || (Array.isArray(input.keys) ? input.keys[0] : null);\nif (!certificateId || typeof certificateId !== 'string') throw new Error('certificateId is required');\nreturn { json: { certificateId } };"
+      },
+      "id": "normalize-work-key",
+      "name": "Normalize Work Key",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [288, 240]
+    },
+    {
+      "parameters": {
+        "url": "=https://directus-production-69c0.up.railway.app/items/Certificates/{{ $json.certificateId }}",
         "authentication": "predefinedCredentialType",
         "nodeCredentialType": "httpHeaderAuth",
         "options": {}
       },
-      "id": "fetch-submission-id",
-      "name": "Fetch Submission",
+      "id": "fetch-certificate",
+      "name": "Fetch Certificate",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.1,
-      "position": [
-        464,
-        192
-      ],
-      "credentials": {
-        "httpHeaderAuth": {
-          "id": "pykovaGnwSaykDqr",
-          "name": "Header Auth account"
-        }
-      }
+      "position": [480, 240],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 3000,
+      "credentials": { "httpHeaderAuth": { "id": "pykovaGnwSaykDqr", "name": "Header Auth account" } }
+    },
+    {
+      "parameters": { "conditions": { "string": [{ "value1": "={{ $json.data.status }}", "value2": "pending" }] } },
+      "id": "check-pending",
+      "name": "Check Pending",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [672, 240]
     },
     {
       "parameters": {
-        "url": "=https://directus-production-69c0.up.railway.app/users/{{ $('Fetch Submission').item.json.data.user_id }}",
+        "method": "PATCH",
+        "url": "=https://directus-production-69c0.up.railway.app/items/Certificates",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ { query: { filter: { id: { _eq: $('Normalize Work Key').item.json.certificateId }, status: { _eq: 'pending' } } }, data: { status: 'processing', attempt_count: Number($('Fetch Certificate').item.json.data.attempt_count || 0) + 1, last_attempt_at: new Date().toISOString(), failure_code: null, failure_detail: null } } }}",
+        "options": {}
+      },
+      "id": "claim-certificate",
+      "name": "Claim Certificate",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [864, 200],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 3000,
+      "credentials": { "httpHeaderAuth": { "id": "pykovaGnwSaykDqr", "name": "Header Auth account" } }
+    },
+    {
+      "parameters": { "conditions": { "number": [{ "value1": "={{ Array.isArray($json.data) ? $json.data.length : 0 }}", "operation": "larger", "value2": 0 }] } },
+      "id": "claim-won",
+      "name": "Claim Won",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [1056, 200]
+    },
+    {
+      "parameters": {
+        "url": "=https://directus-production-69c0.up.railway.app/items/CourseCompletions/{{ $('Fetch Certificate').item.json.data.completion_id }}",
         "authentication": "predefinedCredentialType",
         "nodeCredentialType": "httpHeaderAuth",
         "options": {}
       },
-      "id": "fetch-user-id",
+      "id": "fetch-completion",
+      "name": "Fetch Completion",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [1248, 160],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 3000,
+      "onError": "continueErrorOutput",
+      "credentials": { "httpHeaderAuth": { "id": "pykovaGnwSaykDqr", "name": "Header Auth account" } }
+    },
+    {
+      "parameters": {
+        "url": "=https://directus-production-69c0.up.railway.app/users/{{ $('Fetch Certificate').item.json.data.user_id }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "httpHeaderAuth",
+        "options": {}
+      },
+      "id": "fetch-user",
       "name": "Fetch User",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.1,
-      "position": [
-        640,
-        192
-      ],
-      "credentials": {
-        "httpHeaderAuth": {
-          "id": "pykovaGnwSaykDqr",
-          "name": "Header Auth account"
-        }
-      }
-    },
-    {
-      "parameters": {
-        "url": "=https://directus-production-69c0.up.railway.app/items/Courses/{{ $('Fetch Submission').item.json.data.course_id }}",
-        "authentication": "predefinedCredentialType",
-        "nodeCredentialType": "httpHeaderAuth",
-        "options": {}
-      },
-      "id": "fetch-course-id",
-      "name": "Fetch Course",
-      "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4.1,
-      "position": [
-        832,
-        192
-      ],
-      "credentials": {
-        "httpHeaderAuth": {
-          "id": "pykovaGnwSaykDqr",
-          "name": "Header Auth account"
-        }
-      }
+      "position": [1440, 160],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 3000,
+      "onError": "continueErrorOutput",
+      "credentials": { "httpHeaderAuth": { "id": "pykovaGnwSaykDqr", "name": "Header Auth account" } }
     },
     {
       "parameters": {
         "operation": "copy",
         "fileId": "1F8S_-gBt6KrnV_CCj-QTk5RdFphpYIlWyJNPfOtiamU",
-        "name": "=Certificate - {{ ($('Fetch User').item.json.data.legal_name && $('Fetch User').item.json.data.legal_name !== 'null' && $('Fetch User').item.json.data.legal_name.trim() !== '') ? $('Fetch User').item.json.data.legal_name : (($('Fetch User').item.json.data.first_name || '') + ' ' + ($('Fetch User').item.json.data.last_name || '')).trim() }}",
+        "name": "=Certificate - {{ $('Fetch Certificate').item.json.data.legal_name_snapshot }}",
         "sameFolder": false,
-        "driveId": {
-          "__rl": true,
-          "value": "My Drive",
-          "mode": "list"
-        },
-        "folderId": {
-          "__rl": true,
-          "value": "1jAQEt3IonGohH9fg3p86HBEbmpC6WiUT",
-          "mode": "id"
-        },
+        "driveId": { "__rl": true, "value": "My Drive", "mode": "list" },
+        "folderId": { "__rl": true, "value": "1jAQEt3IonGohH9fg3p86HBEbmpC6WiUT", "mode": "id" },
         "options": {}
       },
-      "id": "copy-template-id",
+      "id": "copy-template",
       "name": "Copy Template",
       "type": "n8n-nodes-base.googleDrive",
       "typeVersion": 3,
-      "position": [
-        1008,
-        192
-      ],
-      "credentials": {
-        "googleDriveOAuth2Api": {
-          "id": "WmdiNZNt6QPR2Q7g",
-          "name": "Google Drive account"
-        }
-      }
+      "position": [1632, 160],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 3000,
+      "onError": "continueErrorOutput",
+      "credentials": { "googleDriveOAuth2Api": { "id": "WmdiNZNt6QPR2Q7g", "name": "Google Drive account" } }
     },
     {
       "parameters": {
         "operation": "update",
         "documentURL": "={{ $('Copy Template').item.json.id }}",
-        "actionsUi": {
-          "actionFields": [
-            {
-              "action": "replaceAll",
-              "text": "{{legal_name}}",
-              "replaceText": "={{ ($('Fetch User').item.json.data.legal_name && $('Fetch User').item.json.data.legal_name !== 'null' && $('Fetch User').item.json.data.legal_name.trim() !== '') ? $('Fetch User').item.json.data.legal_name : (($('Fetch User').item.json.data.first_name || '') + ' ' + ($('Fetch User').item.json.data.last_name || '')).trim() }}"
-            },
-            {
-              "action": "replaceAll",
-              "text": "{{course_title}}",
-              "replaceText": "={{ $('Fetch Course').item.json.data.title }}"
-            },
-            {
-              "action": "replaceAll",
-              "text": "{{tea_id}}",
-              "replaceText": "={{ $('Fetch User').item.json.data.tea_id || 'N/A' }}"
-            },
-            {
-              "action": "replaceAll",
-              "text": "{{issued_date}}",
-              "replaceText": "={{ new Date().toLocaleDateString() }}"
-            }
-          ]
-        }
+        "actionsUi": { "actionFields": [
+          { "action": "replaceAll", "text": "{{legal_name}}", "replaceText": "={{ $('Fetch Certificate').item.json.data.legal_name_snapshot }}" },
+          { "action": "replaceAll", "text": "{{course_title}}", "replaceText": "={{ $('Fetch Certificate').item.json.data.course_title_snapshot }}" },
+          { "action": "replaceAll", "text": "{{cpe_earned}}", "replaceText": "={{ String($('Fetch Certificate').item.json.data.cpe_earned) }}" },
+          { "action": "replaceAll", "text": "{{tea_id}}", "replaceText": "={{ $('Fetch User').item.json.data.tea_id || 'N/A' }}" },
+          { "action": "replaceAll", "text": "{{issued_date}}", "replaceText": "={{ new Date().toLocaleDateString('en-US') }}" }
+        ] }
       },
-      "id": "update-gdoc-id",
+      "id": "generate-certificate-doc",
       "name": "Generate Certificate Doc",
       "type": "n8n-nodes-base.googleDocs",
       "typeVersion": 2,
-      "position": [
-        1184,
-        192
-      ],
-      "credentials": {
-        "googleDocsOAuth2Api": {
-          "id": "Jol2cofNtQnQPW20",
-          "name": "Google Docs account"
-        }
-      }
+      "position": [1824, 160],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 3000,
+      "onError": "continueErrorOutput",
+      "credentials": { "googleDocsOAuth2Api": { "id": "Jol2cofNtQnQPW20", "name": "Google Docs account" } }
     },
     {
       "parameters": {
         "operation": "download",
         "fileId": "={{ $('Copy Template').item.json.id }}",
-        "options": {
-          "googleFileConversion": {
-            "conversion": {
-              "docsToFormat": "application/pdf"
-            }
-          }
-        }
+        "options": { "googleFileConversion": { "conversion": { "docsToFormat": "application/pdf" } } }
       },
-      "id": "download-pdf-id",
+      "id": "export-pdf",
       "name": "Export to PDF",
       "type": "n8n-nodes-base.googleDrive",
       "typeVersion": 3,
-      "position": [
-        1360,
-        192
-      ],
-      "credentials": {
-        "googleDriveOAuth2Api": {
-          "id": "WmdiNZNt6QPR2Q7g",
-          "name": "Google Drive account"
-        }
-      }
+      "position": [2016, 160],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 3000,
+      "onError": "continueErrorOutput",
+      "credentials": { "googleDriveOAuth2Api": { "id": "WmdiNZNt6QPR2Q7g", "name": "Google Drive account" } }
     },
     {
-      "parameters": {
-        "operation": "binaryToPropery",
-        "binaryPropertyName": "data",
-        "destinationKey": "base64",
-        "options": {
-          "keepSource": "both"
-        }
-      },
-      "id": "pdf-to-base64-id",
+      "parameters": { "operation": "binaryToPropery", "binaryPropertyName": "data", "destinationKey": "base64", "options": { "keepSource": "both" } },
+      "id": "pdf-to-base64",
       "name": "PDF to Base64",
       "type": "n8n-nodes-base.extractFromFile",
       "typeVersion": 1,
-      "position": [
-        1460,
-        192
-      ]
+      "position": [2208, 160],
+      "onError": "continueErrorOutput"
     },
     {
       "parameters": {
@@ -239,74 +198,55 @@
         "nodeCredentialType": "httpHeaderAuth",
         "sendBody": true,
         "contentType": "multipart-form-data",
-        "bodyParameters": {
-          "parameters": [
-            {
-              "name": "title",
-              "value": "=Certificate - {{ ($('Fetch User').item.json.data.legal_name && $('Fetch User').item.json.data.legal_name !== 'null' && $('Fetch User').item.json.data.legal_name.trim() !== '') ? $('Fetch User').item.json.data.legal_name : (($('Fetch User').item.json.data.first_name || '') + ' ' + ($('Fetch User').item.json.data.last_name || '')).trim() }}"
-            },
-            {
-              "parameterType": "formBinaryData",
-              "name": "file",
-              "inputDataFieldName": "data"
-            }
-          ]
-        },
+        "bodyParameters": { "parameters": [
+          { "name": "title", "value": "=Certificate - {{ $('Fetch Certificate').item.json.data.legal_name_snapshot }}" },
+          { "parameterType": "formBinaryData", "name": "file", "inputDataFieldName": "data" }
+        ] },
         "options": {}
       },
-      "id": "upload-directus-id",
+      "id": "upload-directus",
       "name": "Upload PDF to Directus",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.1,
-      "position": [
-        1552,
-        192
-      ],
-      "credentials": {
-        "httpHeaderAuth": {
-          "id": "pykovaGnwSaykDqr",
-          "name": "Header Auth account"
-        }
-      }
+      "position": [2400, 160],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 3000,
+      "onError": "continueErrorOutput",
+      "credentials": { "httpHeaderAuth": { "id": "pykovaGnwSaykDqr", "name": "Header Auth account" } }
     },
     {
       "parameters": {
-        "method": "POST",
-        "url": "https://directus-production-69c0.up.railway.app/items/Certificates",
+        "method": "PATCH",
+        "url": "=https://directus-production-69c0.up.railway.app/items/Certificates/{{ $('Normalize Work Key').item.json.certificateId }}",
         "authentication": "predefinedCredentialType",
         "nodeCredentialType": "httpHeaderAuth",
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={\"user_id\":\"{{ $('Fetch Submission').item.json.data.user_id }}\",\"course_id\":\"{{ $('Fetch Submission').item.json.data.course_id }}\",\"pdf_url\":\"https://directus-production-69c0.up.railway.app/assets/{{ $json.data.id }}\",\"issued_date\":\"{{ new Date().toISOString() }}\"}",
+        "jsonBody": "={{ { status: 'issued', pdf_url: 'https://directus-production-69c0.up.railway.app/assets/' + $json.data.id, issued_date: new Date().toISOString() } }}",
         "options": {}
       },
-      "id": "create-certificate-id",
-      "name": "Create Certificate Record",
+      "id": "mark-issued",
+      "name": "Mark Issued",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.1,
-      "position": [
-        1728,
-        192
-      ],
-      "credentials": {
-        "httpHeaderAuth": {
-          "id": "pykovaGnwSaykDqr",
-          "name": "Header Auth account"
-        }
-      }
+      "position": [2592, 160],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 3000,
+      "onError": "continueErrorOutput",
+      "credentials": { "httpHeaderAuth": { "id": "pykovaGnwSaykDqr", "name": "Header Auth account" } }
     },
     {
       "parameters": {
-        "jsCode": "const user = $('Fetch User').item.json.data;\nconst course = $('Fetch Course').item.json.data;\nconst base64Content = $('PDF to Base64').item.json.base64;\n\nconst jsonBody = {\n  from: \"Guiding Diversity <cpe@guidingdiversity.com>\",\n  reply_to: \"guidingdiversity@gmail.com\",\n  to: user.email,\n  subject: \"Congratulations! Your Certificate is ready\",\n  html: `<p>Dear ${user.first_name},</p><p>Congratulations on passing the course <strong>${course.title}</strong>!</p><p>Please find your certificate attached to this email.</p><p>Best regards,<br/>Guiding Diversity CPE team</p>`,\n  attachments: [\n    {\n      filename: `Certificate - ${user.legal_name || (user.first_name + ' ' + user.last_name)}.pdf`,\n      content: base64Content\n    }\n  ]\n};\n\nreturn { json: jsonBody };"
+        "jsCode": "const user = $('Fetch User').item.json.data;\nconst certificate = $('Fetch Certificate').item.json.data;\nconst base64Content = $('PDF to Base64').item.json.base64;\nreturn { json: { from: 'Guiding Diversity <cpe@guidingdiversity.com>', reply_to: 'guidingdiversity@gmail.com', to: user.email, subject: 'Congratulations! Your certificate is ready', html: `<p>Dear ${user.first_name || certificate.legal_name_snapshot},</p><p>Congratulations on completing <strong>${certificate.course_title_snapshot}</strong> and earning <strong>${certificate.cpe_earned} CPE credit${Number(certificate.cpe_earned) === 1 ? '' : 's'}</strong>.</p><p>Your certificate is attached.</p><p>Best regards,<br/>Guiding Diversity CPE team</p>`, attachments: [{ filename: `Certificate - ${certificate.legal_name_snapshot}.pdf`, content: base64Content }] } };"
       },
-      "id": "prepare-email-payload-id",
-      "name": "Prepare Email Payload",
+      "id": "prepare-email",
+      "name": "Prepare Email",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [
-        1904,
-        192
-      ]
+      "position": [2784, 160],
+      "onError": "continueErrorOutput"
     },
     {
       "parameters": {
@@ -314,240 +254,99 @@
         "url": "https://api.resend.com/emails",
         "authentication": "predefinedCredentialType",
         "nodeCredentialType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": { "parameters": [{ "name": "Idempotency-Key", "value": "={{ $('Normalize Work Key').item.json.certificateId }}" }] },
         "sendBody": true,
         "specifyBody": "json",
         "jsonBody": "={{ $json }}",
         "options": {}
       },
-      "id": "send-email-id",
+      "id": "send-email",
       "name": "Send Certificate Email",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.1,
-      "position": [
-        2080,
-        192
-      ],
-      "credentials": {
-        "httpHeaderAuth": {
-          "id": "oJp1K98DfgudDjtl",
-          "name": "Header Auth account 3"
-        }
-      }
+      "position": [2976, 160],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000,
+      "onError": "continueErrorOutput",
+      "credentials": { "httpHeaderAuth": { "id": "oJp1K98DfgudDjtl", "name": "Header Auth account 3" } }
+    },
+    {
+      "parameters": {
+        "method": "PATCH",
+        "url": "=https://directus-production-69c0.up.railway.app/items/Certificates/{{ $('Normalize Work Key').item.json.certificateId }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ { status: 'delivered', emailed_at: new Date().toISOString() } }}",
+        "options": {}
+      },
+      "id": "mark-delivered",
+      "name": "Mark Delivered",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [3168, 160],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 3000,
+      "onError": "continueErrorOutput",
+      "credentials": { "httpHeaderAuth": { "id": "pykovaGnwSaykDqr", "name": "Header Auth account" } }
     },
     {
       "parameters": {
         "operation": "deleteFile",
-        "fileId": {
-          "__rl": true,
-          "value": "={{ $('Copy Template').first().json.id }}",
-          "mode": "id"
-        },
+        "fileId": { "__rl": true, "value": "={{ $('Copy Template').item.json.id }}", "mode": "id" },
         "options": {}
       },
+      "id": "delete-template",
+      "name": "Delete Working Document",
       "type": "n8n-nodes-base.googleDrive",
       "typeVersion": 3,
-      "position": [
-        2260,
-        192
-      ],
-      "id": "a4c63303-2ce0-4a2b-9d96-9db2823c2eba",
-      "name": "Delete a file",
-      "credentials": {
-        "googleDriveOAuth2Api": {
-          "id": "WmdiNZNt6QPR2Q7g",
-          "name": "Google Drive account"
-        }
-      }
+      "position": [3360, 160],
+      "credentials": { "googleDriveOAuth2Api": { "id": "WmdiNZNt6QPR2Q7g", "name": "Google Drive account" } }
     },
     {
       "parameters": {
-        "resource": "file",
-        "operation": "upload",
-        "inputDataFieldName": "data",
-        "name": "=Certificate - {{ ($(\"Fetch User\").item.json.data.legal_name && $(\"Fetch User\").item.json.data.legal_name !== 'null' && $(\"Fetch User\").item.json.data.legal_name.trim() !== '') ? $(\"Fetch User\").item.json.data.legal_name : (($(\"Fetch User\").item.json.data.first_name || '') + ' ' + ($(\"Fetch User\").item.json.data.last_name || '')).trim() }}.pdf",
-        "driveId": {
-          "__rl": true,
-          "value": "My Drive",
-          "mode": "list"
-        },
-        "folderId": {
-          "__rl": true,
-          "value": "1jAQEt3IonGohH9fg3p86HBEbmpC6WiUT",
-          "mode": "id"
-        },
+        "method": "PATCH",
+        "url": "=https://directus-production-69c0.up.railway.app/items/Certificates/{{ $('Normalize Work Key').item.json.certificateId }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ { status: 'failed', failure_code: 'certificate_worker_error', failure_detail: 'Certificate fulfillment failed after three attempts. Review the n8n execution for operational details.' } }}",
         "options": {}
       },
-      "id": "upload-pdf-to-google-drive-id",
-      "name": "Upload PDF to Google Drive",
-      "type": "n8n-nodes-base.googleDrive",
-      "typeVersion": 3,
-      "position": [
-        1550,
-        340
-      ],
-      "credentials": {
-        "googleDriveOAuth2Api": {
-          "id": "WmdiNZNt6QPR2Q7g",
-          "name": "Google Drive account"
-        }
-      }
+      "id": "mark-failed",
+      "name": "Mark Failed",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [2400, 440],
+      "credentials": { "httpHeaderAuth": { "id": "pykovaGnwSaykDqr", "name": "Header Auth account" } }
     }
   ],
   "connections": {
-    "Directus Webhook": {
-      "main": [
-        [
-          {
-            "node": "Check Approved Status",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Check Approved Status": {
-      "main": [
-        [
-          {
-            "node": "Fetch Submission",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Fetch Submission": {
-      "main": [
-        [
-          {
-            "node": "Fetch User",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Fetch User": {
-      "main": [
-        [
-          {
-            "node": "Fetch Course",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Fetch Course": {
-      "main": [
-        [
-          {
-            "node": "Copy Template",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Copy Template": {
-      "main": [
-        [
-          {
-            "node": "Generate Certificate Doc",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Generate Certificate Doc": {
-      "main": [
-        [
-          {
-            "node": "Export to PDF",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Export to PDF": {
-      "main": [
-        [
-          {
-            "node": "PDF to Base64",
-            "type": "main",
-            "index": 0
-          },
-          {
-            "node": "Upload PDF to Google Drive",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "PDF to Base64": {
-      "main": [
-        [
-          {
-            "node": "Upload PDF to Directus",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Upload PDF to Directus": {
-      "main": [
-        [
-          {
-            "node": "Create Certificate Record",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Create Certificate Record": {
-      "main": [
-        [
-          {
-            "node": "Prepare Email Payload",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Prepare Email Payload": {
-      "main": [
-        [
-          {
-            "node": "Send Certificate Email",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Send Certificate Email": {
-      "main": [
-        [
-          {
-            "node": "Delete a file",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    }
+    "Certificate Webhook": { "main": [[{ "node": "Normalize Work Key", "type": "main", "index": 0 }]] },
+    "Reconciliation Trigger": { "main": [[{ "node": "Normalize Work Key", "type": "main", "index": 0 }]] },
+    "Normalize Work Key": { "main": [[{ "node": "Fetch Certificate", "type": "main", "index": 0 }]] },
+    "Fetch Certificate": { "main": [[{ "node": "Check Pending", "type": "main", "index": 0 }]] },
+    "Check Pending": { "main": [[{ "node": "Claim Certificate", "type": "main", "index": 0 }], []] },
+    "Claim Certificate": { "main": [[{ "node": "Claim Won", "type": "main", "index": 0 }]] },
+    "Claim Won": { "main": [[{ "node": "Fetch Completion", "type": "main", "index": 0 }], []] },
+    "Fetch Completion": { "main": [[{ "node": "Fetch User", "type": "main", "index": 0 }], [{ "node": "Mark Failed", "type": "main", "index": 0 }]] },
+    "Fetch User": { "main": [[{ "node": "Copy Template", "type": "main", "index": 0 }], [{ "node": "Mark Failed", "type": "main", "index": 0 }]] },
+    "Copy Template": { "main": [[{ "node": "Generate Certificate Doc", "type": "main", "index": 0 }], [{ "node": "Mark Failed", "type": "main", "index": 0 }]] },
+    "Generate Certificate Doc": { "main": [[{ "node": "Export to PDF", "type": "main", "index": 0 }], [{ "node": "Mark Failed", "type": "main", "index": 0 }]] },
+    "Export to PDF": { "main": [[{ "node": "PDF to Base64", "type": "main", "index": 0 }], [{ "node": "Mark Failed", "type": "main", "index": 0 }]] },
+    "PDF to Base64": { "main": [[{ "node": "Upload PDF to Directus", "type": "main", "index": 0 }], [{ "node": "Mark Failed", "type": "main", "index": 0 }]] },
+    "Upload PDF to Directus": { "main": [[{ "node": "Mark Issued", "type": "main", "index": 0 }], [{ "node": "Mark Failed", "type": "main", "index": 0 }]] },
+    "Mark Issued": { "main": [[{ "node": "Prepare Email", "type": "main", "index": 0 }], [{ "node": "Mark Failed", "type": "main", "index": 0 }]] },
+    "Prepare Email": { "main": [[{ "node": "Send Certificate Email", "type": "main", "index": 0 }], [{ "node": "Mark Failed", "type": "main", "index": 0 }]] },
+    "Send Certificate Email": { "main": [[{ "node": "Mark Delivered", "type": "main", "index": 0 }], [{ "node": "Mark Failed", "type": "main", "index": 0 }]] },
+    "Mark Delivered": { "main": [[{ "node": "Delete Working Document", "type": "main", "index": 0 }], [{ "node": "Mark Failed", "type": "main", "index": 0 }]] }
   },
-  "settings": {
-    "executionOrder": "v1"
-  },
+  "settings": { "executionOrder": "v1" },
   "staticData": null,
-  "meta": {
-    "templateCredsSetupCompleted": true
-  }
+  "meta": { "templateCredsSetupCompleted": true }
 }

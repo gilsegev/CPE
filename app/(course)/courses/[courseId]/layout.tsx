@@ -7,6 +7,7 @@ import { getProgress } from "@/actions/get-progress";
 
 import { CourseSidebar } from "./_components/course-sidebar";
 import { CourseNavbar } from "./_components/course-navbar";
+import { isV2ContentModule, relationId } from "@/lib/course-completion-rules";
 
 const CourseLayout = async ({
   children,
@@ -27,7 +28,7 @@ const CourseLayout = async ({
   // 1. Fetch course details from Directus
   const courseRaw = await db.request(
     readItem("Courses", params.courseId, {
-      fields: ["id", "title", "description", "price", "is_published", "thumbnail_url"],
+      fields: ["id", "title", "description", "price", "is_published", "thumbnail_url", "structure_version"],
     })
   );
 
@@ -36,15 +37,17 @@ const CourseLayout = async ({
   }
 
   // 2. Fetch course modules (chapters)
-  const modules = await db.request(
+  const allModules = await db.request(
     readItems("Modules", {
       filter: {
         course_id: { _eq: params.courseId },
       },
       sort: ["order_index"],
-      fields: ["id", "title", "order_index", "mux_asset_id", "is_free_preview", "type"],
+      fields: ["id", "title", "order_index", "mux_asset_id", "is_free_preview", "type", "migration_status"],
     })
   );
+  const isV2 = courseRaw.structure_version === "module_quiz_v2";
+  const modules = isV2 ? allModules.filter(isV2ContentModule) : allModules;
 
   const moduleIds = modules.map((m) => m.id);
 
@@ -55,11 +58,11 @@ const CourseLayout = async ({
         user_id: { _eq: userId },
         module_id: { _in: moduleIds },
       },
-      fields: ["id", "module_id", "is_completed"],
+      fields: ["id", "module_id", "is_completed", "completed_at"],
     })
   ) : [];
 
-  const progressMap = new Map(progresses.map((p) => [p.module_id, p.is_completed]));
+  const progressMap = new Map(progresses.map((p) => [relationId(p.module_id), p]));
 
   // Fetch active purchase for the user
   const purchases = userId ? await db.request(
@@ -87,22 +90,25 @@ const CourseLayout = async ({
     isPublished: courseRaw.is_published,
     imageUrl,
     chapters: modules.map((m, index) => {
-      const isCompleted = !!progressMap.get(m.id);
+      const progress = progressMap.get(m.id);
+      const isCompleted = isV2 ? Boolean(progress?.completed_at) : Boolean(progress?.is_completed);
 
       // Compute locked state based on purchase and preceding completion rules
       let isLocked = false;
       if (!m.is_free_preview && !purchase) {
         isLocked = true;
       } else if (purchase) {
-        if (m.type === 'quiz') {
+        if (isV2) {
+          isLocked = modules.slice(0, index).some((prev) => !progressMap.get(prev.id)?.completed_at);
+        } else if (m.type === 'quiz') {
           // Locked if any preceding 'video' module is not completed
           isLocked = modules.slice(0, index).some((prev) => {
-            return (prev.type === 'video' || !prev.type) && !progressMap.get(prev.id);
+            return (prev.type === 'video' || !prev.type) && !progressMap.get(prev.id)?.is_completed;
           });
         } else if (m.type === 'essay') {
           // Locked if any preceding 'video' or 'quiz' module is not completed
           isLocked = modules.slice(0, index).some((prev) => {
-            return !progressMap.get(prev.id);
+            return !progressMap.get(prev.id)?.is_completed;
           });
         }
       }

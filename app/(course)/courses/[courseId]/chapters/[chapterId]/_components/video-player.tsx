@@ -21,6 +21,7 @@ interface VideoPlayerProps {
   completeOnEnd: boolean;
   title: string;
   courseImageUrl?: string | null;
+  isV2?: boolean;
 }
 
 export const VideoPlayer = ({
@@ -32,6 +33,7 @@ export const VideoPlayer = ({
   completeOnEnd,
   title,
   courseImageUrl,
+  isV2 = false,
 }: VideoPlayerProps) => {
   const [isReady, setIsReady] = useState(false);
   const router = useRouter();
@@ -85,11 +87,11 @@ export const VideoPlayer = ({
           isCompleted: true,
         });
 
-        if (!nextChapterId) {
+        if (!isV2 && !nextChapterId) {
           confetti.onOpen();
         }
 
-        toast.success("Progress updated");
+        toast.success(isV2 ? "Module content completed" : "Progress updated");
         router.refresh();
       }
     } catch {

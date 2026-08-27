@@ -44,7 +44,18 @@ export async function POST(req: Request) {
       await db.request(deleteItems("Submissions", submissions.map((s) => s.id)));
     }
 
-    // 4. Clean Certificates
+    // 4. Clean feedback before its completion relation.
+    const feedbackResponses = await db.request(
+      readItems("FeedbackResponses", {
+        filter: { user_id: { _eq: user.id } },
+        fields: ["id"],
+      })
+    );
+    if (feedbackResponses.length > 0) {
+      await db.request(deleteItems("FeedbackResponses", feedbackResponses.map((response) => response.id)));
+    }
+
+    // 5. Clean Certificates
     const certificates = await db.request(
       readItems("Certificates", {
         filter: { user_id: { _eq: user.id } },
@@ -55,7 +66,29 @@ export async function POST(req: Request) {
       await db.request(deleteItems("Certificates", certificates.map((c) => c.id)));
     }
 
-    // 5. Clean QuizProgress
+    // 6. Clean CourseCompletions before their final quiz attempt relation.
+    const completions = await db.request(
+      readItems("CourseCompletions", {
+        filter: { user_id: { _eq: user.id } },
+        fields: ["id"],
+      })
+    );
+    if (completions.length > 0) {
+      await db.request(deleteItems("CourseCompletions", completions.map((completion) => completion.id)));
+    }
+
+    // 7. Clean QuizAttempts
+    const quizAttempts = await db.request(
+      readItems("QuizAttempts", {
+        filter: { user_id: { _eq: user.id } },
+        fields: ["id"],
+      })
+    );
+    if (quizAttempts.length > 0) {
+      await db.request(deleteItems("QuizAttempts", quizAttempts.map((attempt) => attempt.id)));
+    }
+
+    // 8. Clean QuizProgress
     const quizProgresses = await db.request(
       readItems("QuizProgress", {
         filter: { user_id: { _eq: user.id } },

@@ -64,9 +64,22 @@ const ChapterIdPage = async ({
     );
   }
 
-  // Fetch initial Quiz Data if chapter is a quiz and unlocked
+  const isV2 = courseDetails.structureVersion === "module_quiz_v2";
+
+  // A v2 quiz belongs to its content module but is presented as the next player step.
+  // Legacy courses retain standalone quiz modules.
   let quizData = null;
-  if (chapter.type === "quiz" && userId && !isLocked) {
+  let hasEnabledQuiz = false;
+  if (isV2 && user && purchase && !isLocked) {
+    const quizzes = await db.request(
+      readItems("Quizzes", {
+        filter: { module_id: { _eq: params.chapterId }, is_enabled: { _eq: true } },
+        fields: ["id"],
+        limit: 1,
+      }),
+    );
+    hasEnabledQuiz = Boolean(quizzes[0]);
+  } else if (chapter.type === "quiz" && userId && !isLocked) {
     try {
       const quizzes = await db.request(
         readItems("Quizzes", {
@@ -149,7 +162,7 @@ const ChapterIdPage = async ({
     }
   }
 
-  const completeOnEnd = !!purchase && !userProgress?.isCompleted;
+  const completeOnEnd = !!purchase && (isV2 ? !userProgress?.contentCompletedAt : !userProgress?.isCompleted);
 
   return ( 
     <div>
@@ -188,7 +201,7 @@ const ChapterIdPage = async ({
       {userProgress?.isCompleted && chapter.type === "video" && (
         <Banner
           variant="success"
-          label="You already completed this chapter."
+          label="You already completed this module."
         />
       )}
       {isLocked && purchase && (
@@ -201,13 +214,13 @@ const ChapterIdPage = async ({
         <PaymentVerificationPoller courseId={params.courseId} />
       )}
       {purchase && <div className="flex flex-col max-w-7xl mx-auto pb-20">
-        {isLocked && (chapter.type === "quiz" || chapter.type === "essay") ? (
+        {isLocked ? (
           <div className="p-4 flex flex-col items-center justify-center min-h-[400px] text-center bg-slate-50 border border-slate-200 rounded-xl mt-6 mx-4">
             <Lock className="h-12 w-12 text-slate-400 mb-4 animate-pulse" />
             <h3 className="text-lg font-bold text-slate-800">Module Locked</h3>
             <p className="text-sm text-slate-500 mt-2 max-w-md">
               {purchase 
-                ? "This assessment module is locked. You must complete all preceding video modules first."
+                ? "This module is locked. You must complete the preceding module first."
                 : "You must purchase this course to unlock assessments."}
             </p>
           </div>
@@ -217,6 +230,7 @@ const ChapterIdPage = async ({
               <div className="p-4">
                 <QuizAssessment
                   courseId={params.courseId}
+                  courseTitle={courseDetails.title}
                   chapterId={params.chapterId}
                   nextChapterId={nextChapter?.id}
                   initialData={quizData}
@@ -246,6 +260,7 @@ const ChapterIdPage = async ({
                     isLocked={isLocked}
                     completeOnEnd={completeOnEnd}
                     courseImageUrl={course.imageUrl}
+                    isV2={isV2}
                   />
                 </div>
                 <div>
@@ -255,12 +270,26 @@ const ChapterIdPage = async ({
                     </h2>
                     {purchase && (
                       <div className="flex flex-col md:flex-row gap-2">
-                        <CourseProgressButton
-                          chapterId={params.chapterId}
-                          courseId={params.courseId}
-                          nextChapterId={nextChapter?.id}
-                          isCompleted={!!userProgress?.isCompleted}
-                        />
+                        {(!isV2 || !userProgress?.contentCompletedAt) && (
+                          <CourseProgressButton
+                            chapterId={params.chapterId}
+                            courseId={params.courseId}
+                            nextChapterId={nextChapter?.id}
+                            isCompleted={!!userProgress?.isCompleted}
+                            isV2={isV2}
+                          />
+                        )}
+                        {isV2 && hasEnabledQuiz && userProgress?.contentCompletedAt && !userProgress?.completedAt && (
+                          <Link href={`/courses/${params.courseId}/chapters/${params.chapterId}/quiz`}>
+                            <Button
+                              variant="default"
+                              className="w-full md:w-auto bg-slate-900 hover:bg-slate-800 text-white font-semibold flex items-center justify-center gap-x-2"
+                            >
+                              Continue to Quiz
+                              <ArrowRight className="h-4 w-4" />
+                            </Button>
+                          </Link>
+                        )}
                         {!!userProgress?.isCompleted && nextChapter?.id && (
                           <Link href={`/courses/${params.courseId}/chapters/${nextChapter.id}`}>
                             <Button

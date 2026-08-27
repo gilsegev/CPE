@@ -93,6 +93,7 @@ export const ObservabilityProvider = ({ children }: { children: React.ReactNode 
   // Utility to send event log
   const logEvent = async (eventType: string, metadata: any = {}, durationMs?: number) => {
     try {
+      if (pathname?.startsWith("/dev/")) return;
       const sessId = getOrGenerateSessionId();
       const utmSource = sessionStorage.getItem("utm_source") || undefined;
       const utmMedium = sessionStorage.getItem("utm_medium") || undefined;
