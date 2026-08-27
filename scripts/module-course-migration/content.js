@@ -126,6 +126,13 @@ async function migrateCourse(client, manifestCourse, inventory, migratedAt) {
   const questionsByQuiz = groupBy(inventory.questions, (question) => asId(question.quiz_id));
   const mappingByShell = new Map(manifestCourse.quizMappings.map((mapping) => [mapping.legacyQuizModuleId, mapping]));
   const mappingByContent = new Map(manifestCourse.quizMappings.map((mapping) => [mapping.approvedContentModuleId, mapping]));
+  const contentModuleIds = new Set(manifestCourse.contentModules.map((module) => module.moduleId));
+  const legacyCompletedContentProgress = inventory.userProgress.filter(
+    (progress) => progress.is_completed && contentModuleIds.has(asId(progress.module_id)),
+  );
+  const legacyPassedQuizProgress = inventory.userProgress.filter(
+    (progress) => progress.is_completed && mappingByShell.has(asId(progress.module_id)),
+  );
 
   for (const allocation of manifestCourse.contentModules) {
     await client.request(`/items/Modules/${allocation.moduleId}`, "PATCH", {
@@ -341,9 +348,62 @@ async function migrateCourse(client, manifestCourse, inventory, migratedAt) {
     validationErrors.push("module CPE does not reconcile to legacy course CPE");
   }
   if ((refreshedQuizByModule[finalModule?.id] || []).length !== 1) validationErrors.push("final content module does not have exactly one enabled quiz");
+  const originalSubmissionIds = new Set(
+    inventory.submissions.filter((submission) => asId(submission.course_id) === course.id).map((submission) => submission.id),
+  );
+  const refreshedSubmissionIds = new Set(
+    refreshed.submissions.filter((submission) => asId(submission.course_id) === course.id).map((submission) => submission.id),
+  );
+  if (
+    originalSubmissionIds.size !== refreshedSubmissionIds.size
+    || [...originalSubmissionIds].some((submissionId) => !refreshedSubmissionIds.has(submissionId))
+  ) validationErrors.push("historical submission inventory changed during migration");
+
+  const originalCertificates = inventory.certificates.filter((certificate) => asId(certificate.course_id) === course.id);
+  const refreshedCertificates = refreshed.certificates.filter((certificate) => asId(certificate.course_id) === course.id);
+  const refreshedCertificateById = new Map(refreshedCertificates.map((certificate) => [certificate.id, certificate]));
+  if (
+    originalCertificates.length !== refreshedCertificates.length
+    || originalCertificates.some((certificate) => !refreshedCertificateById.has(certificate.id))
+  ) validationErrors.push("historical certificate inventory changed during migration");
+
+  const refreshedProgressById = new Map(refreshed.userProgress.map((progress) => [progress.id, progress]));
+  for (const progress of legacyCompletedContentProgress) {
+    if (!refreshedProgressById.get(progress.id)?.content_completed_at) {
+      validationErrors.push(`completed content progress ${progress.id} was not preserved`);
+    }
+  }
+  for (const progress of legacyPassedQuizProgress) {
+    const mapping = mappingByShell.get(asId(progress.module_id));
+    const target = refreshed.userProgress.find(
+      (row) => asId(row.user_id) === asId(progress.user_id) && asId(row.module_id) === mapping.approvedContentModuleId,
+    );
+    if (!target?.quiz_passed_at) validationErrors.push(`passed quiz progress ${progress.id} was not preserved`);
+  }
+
   for (const selection of manifestCourse.certificateSelections) {
     const canonical = refreshed.certificates.find((certificate) => certificate.id === selection.canonicalCertificateId);
     if (!canonical?.completion_id) validationErrors.push(`canonical certificate ${selection.canonicalCertificateId} is not linked to a completion`);
+    const completion = refreshed.courseCompletions.find(
+      (row) => row.id === asId(canonical?.completion_id)
+        && asId(row.user_id) === selection.userId
+        && asId(row.course_id) === course.id,
+    );
+    if (!completion) {
+      validationErrors.push(`canonical certificate ${selection.canonicalCertificateId} has no matching completion`);
+    } else {
+      const expectedCpe = manifestCourse.contentModules.reduce((total, module) => total + module.cpeValue, 0);
+      if (Number(completion.cpe_earned) !== expectedCpe) {
+        validationErrors.push(`completion ${completion.id} does not preserve the approved CPE award`);
+      }
+      if (!Array.isArray(completion.module_snapshot) || completion.module_snapshot.length !== manifestCourse.contentModules.length) {
+        validationErrors.push(`completion ${completion.id} does not contain the full module snapshot`);
+      }
+    }
+    for (const duplicateId of selection.certificateIds.filter((id) => id !== selection.canonicalCertificateId)) {
+      const duplicate = refreshedCertificateById.get(duplicateId);
+      if (duplicate?.completion_id) validationErrors.push(`historical duplicate certificate ${duplicateId} was linked unexpectedly`);
+    }
   }
   if (validationErrors.length > 0) {
     throw new Error(`${course.title} activation failed: ${validationErrors.join("; ")}`);

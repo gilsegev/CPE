@@ -99,3 +99,7 @@ Running commands with npm `npm run [command]`
 | command         | description                              |
 | :-------------- | :--------------------------------------- |
 | `dev`           | Starts a development instance of the app |
+| `migration:module-courses -- manifest --output <file>` | Produces a read-only course migration inventory. |
+| `migration:module-courses -- apply --manifest <file>` | Validates owner-approved migration decisions without writes. |
+| `migration:module-courses -- cleanup-check` | Fails closed until legacy behavior can be retired safely. |
+| `test` | Runs migration, completion, feedback, and certificate workflow contract tests. |

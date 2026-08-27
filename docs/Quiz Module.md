@@ -1,54 +1,40 @@
-# **Quiz and Assessment Module Requirements**
+# Module Quiz Requirements
 
-## **1. General Overview**
-The Quiz and Assessment Module is a core component of the CPE training platform that allows students to complete learning checks and write observative essays. The overall visual design and interaction patterns must align seamlessly with the existing LMS frontend.
+## Purpose
 
----
+A module quiz is an optional knowledge check attached to the end of one content module. It is not a standalone course module. A certificate-awarding course must have an enabled quiz on its final module.
 
-## **2. Architecture & Module Types**
-Courses are built using three distinct types of modules, managed via the `type` field in the `Modules` collection:
-1. **`video`:** Standard module containing Mux video streaming and playback.
-2. **`quiz`:** Multiple-choice questionnaire assessing module understanding.
-3. **`essay`:** Open-ended essay response serving as the Final Assessment.
+## Learner behavior
 
----
+- A learner must complete the module content before starting its quiz.
+- A later module remains locked until the preceding module and any enabled quiz are complete.
+- Questions are presented in configured order, one at a time, with exactly one correct answer.
+- Correctness and the explanation are revealed only after the learner submits that question's answer.
+- The server stores an in-progress attempt so the learner can resume across sessions.
+- The server calculates the score and pass result; the browser cannot submit either value.
+- A failed attempt remains immutable and does not complete the module, unlock later content, or create a certificate.
+- A retake creates a new attempt and never erases earlier answers or results.
+- Passing the enabled quiz completes the module after its content requirement is satisfied.
 
-## **3. Quiz Functionality**
-Quizzes are associated with specific course modules and support the following features:
-* **Multiple-Choice Structure:** Questions feature 4 options with exactly 1 correct answer.
-* **Predetermined Sequence:** Quizzes support up to 15 questions, presented in a set order configured by the instructor.
-* **Single-Question View:** Students view and answer one question at a time.
-* **Real-Time Feedback:** Submitting an answer instantly displays feedback (Green for Correct, Red for Incorrect) alongside a detailed text explanation loaded from the question's `explanation` field.
-* **Navigation Locking:** The quiz is listed in the course navigation bar and only unlocks when all preceding video modules are completed.
-* **Backend State Persistence:** Student answers are persisted to the database on each submission (stored in a `QuizProgress` collection) allowing users to safely exit and resume their attempt across devices.
-* **Passing Threshold (80%):** Students must score at least 80% correct to pass. Passing the quiz is a strict gate required to unlock the subsequent Final Assessment (Essay) module. Failing requires the student to retake the quiz.
+The configured passing score is an integer from 0 through 100. An enabled quiz has at least one ordered question.
 
----
+## Persistence
 
-## **4. Final Assessment (Essay) Functionality**
-The final step before certificate generation is a reflective open-ended writing prompt:
-* **Prerequisites:** Only unlocks and becomes clickable in the course navigation after all video modules are complete AND the course quiz is passed (>= 80% score).
-* **Essay Input:** Features a text area with no character limit.
-* **Backend Draft Recovery:** Progress is automatically saved to the `Submissions` collection in Directus as a `Draft` status, ensuring students can resume writing later.
-* **Final Submission:** Clicking "Submit Assessment" displays a confirmation modal. Once confirmed, the submission status is set to `Pending`, lockouts are enabled, and the user is informed that an instructor will grade the essay within 3 days.
+- `Quizzes.module_id` uniquely identifies the owning module; `is_enabled` controls whether the quiz affects completion.
+- `Questions.order_index` is unique within a quiz, and `explanation` is protected until answer submission.
+- `QuizAttempts` stores resumable answers and immutable submitted result evidence.
+- `UserProgress.content_completed_at`, `quiz_passed_at`, and `completed_at` are monotonic business evidence.
+- `CourseCompletions` is the one-time course award and references the final passing attempt.
 
----
+`QuizProgress`, standalone `quiz` and `essay` module types, and `Submissions` remain compatibility-only while legacy courses coexist. They must not be used by `module_quiz_v2` courses and are retired only after `cleanup-check` passes.
 
-## **5. Directus Schema Additions**
-To support this phase, the following database updates are required:
-* **`Modules` collection:** Add a `type` dropdown field (`video`, `quiz`, `essay`) with a default value of `video`.
-* **`Questions` collection:** Add an `explanation` text area field.
-* **`QuizProgress` collection (NEW):**
-  * `id` (UUID, Primary Key)
-  * `user_id` (UUID, linked to `directus_users`)
-  * `module_id` (UUID, linked to `Modules`)
-  * `answers` (JSON, storing active answers key-value map, e.g., `{"question_id": selected_index}`)
-  * `is_completed` (Boolean)
-* **`Submissions` collection modifications:**
-  * Update `status` field choices to: `['Draft', 'Pending', 'Approved', 'Rejected']`.
+## Test
 
----
+1. Attempt to start a quiz before completing content and confirm the server rejects it.
+2. Submit one answer and confirm only that question's correctness and explanation are returned.
+3. Submit a failing attempt and confirm it remains stored, the module remains incomplete, and a retake receives a new attempt number.
+4. Pass the final-module quiz twice or concurrently and confirm one completion and one certificate work item exist.
 
-## **6. Non-MVP Requirements**
-1. Support checkboxes for multiple-choice questions with more than one correct answer.
-2. Enable instructors to reset a submission status back to `Draft` to let a student retake their essay.
+## Pass when
+
+The server owns scoring and completion, failed evidence is retained, prerequisites cannot be bypassed, and retries converge without duplicate awards or certificates.

@@ -1,231 +1,88 @@
-# **CPE Training Platform \- High-Level Design (v2)**
+# CPE Training Platform — High-Level Design
 
-This document outlines the systematic architecture, data schema, and implementation strategy for the Next.js and Directus-based Continuing Professional Education (CPE) platform.
+## Business architecture
 
-## **1\. Executive Summary & Core User Journey**
+The platform lets an individual educator purchase a self-paced course, complete ordered learning modules and their configured knowledge checks, earn a durable CPE award, receive a certificate asynchronously, and optionally provide identified course feedback.
 
-The platform delivers compliant, certified training modules. The critical path for a user is:
+```text
+Authenticate -> Purchase -> Complete module content -> Pass configured quizzes
+             -> Course completion + CPE snapshot -> Certificate fulfillment
+                                                -> Optional feedback
+```
 
-1. **Authentication & Purchase:** Register/login and purchase course access via Square.  
-2. **Consumption:** Watch adaptive bitrate videos (via Mux).  
-3. **Assessment:** Complete a structured multiple-choice quiz and submit a text-based case study (essay).  
-4. **Evaluation:** Admin (Instructor) manually reviews the case study in the backend dashboard and marks it as Approved.  
-5. **Certificate:** An automated pipeline generates a customized PDF certificate and emails it to the user.
+Course completion is determined by server-side evidence. Certificate fulfillment and feedback are downstream processes: neither can revoke, delay, or duplicate the award.
 
-## **2\. Technology Stack & Roles**
+## System responsibilities
 
-| Component | Technology | Primary Responsibilities |
-| :---- | :---- | :---- |
-| **Frontend UI/UX** | Next.js, React, Tailwind CSS | User-facing LMS (modified Antonio Erdeljac clone). Manages client routing, local state, video playback UI, and custom quiz rendering. |
-| **Backend API & CMS** | Directus | Headless CMS, Auth (JWT via Directus SDK), RBAC, REST/GraphQL API generation, and Admin Dashboard for course/user management. |
-| **Database** | PostgreSQL (Managed) | Relational storage for the core data schema. Managed via Supabase, Neon, or DigitalOcean. |
-| **Video Hosting** | Mux | Adaptive bitrate streaming, video hosting, and playback state tracking (pause/resume). Offloads media handling from the DB. |
-| **Payments** | Square | Secure checkout, payment links, and automated tax receipts. |
-| **Automation Pipeline** | n8n | Asynchronous orchestration for certificate generation and email triggers. |
-| **Transactional Email** | Resend / SendGrid | Delivery of welcome emails, password resets, and final certificates. |
+| Component | Responsibility |
+| --- | --- |
+| Next.js application | Authenticates learners, authorizes purchases, enforces module order, scores quizzes, creates completion evidence, validates feedback, and exposes administrator recovery operations. |
+| Directus and PostgreSQL | Store course configuration, learner evidence, immutable awards, certificate work, feedback, and uniqueness constraints. |
+| Mux | Hosts and streams module video. |
+| Square | Processes payment; the application stores only purchase state and provider references. |
+| n8n | Claims pending certificate work, generates and stores the PDF, sends email, records delivery, and reconciles missing or stuck work. |
+| Administrator observability | Reports course completions, feedback, technical journey events, and certificate failures without treating telemetry as business evidence. |
 
-## **3\. Core Data Schema (Directus Models)**
+## Core model
 
-This explicit schema replaces the default Prisma models from the clone, mapping directly to Directus collections.
+```text
+Course 1 -> 1..* ordered Module 1 -> 0..1 enabled Module Quiz -> 1..* Question
+                           |
+                           +-> non-negative integer CPE value
 
-| Collection | Fields & Types | Relationships / Notes |
-| :---- | :---- | :---- |
-| **Users** (System) | id, email, password, first\_name, last\_name, tea\_provider\_number, role | Extended Directus Directus\_Users table. |
-| **Courses** | id, title, description, price, is\_published, thumbnail\_url | Parent container for training content. |
-| **Modules** | id, course\_id, title, order\_index, mux\_asset\_id, is\_free\_preview | Many-to-One with Courses. |
-| **Purchases** | id, user\_id, course\_id, stripe\_payment\_id (Square payment ID), status | Junction table tracking access control. |
-| **Quizzes** | id, module\_id, passing\_score | One-to-One with Modules. Custom build. |
-| **Questions** | id, quiz\_id, question\_text, options (JSON), correct\_answer\_index | Many-to-One with Quizzes. Options stored as JSON array. |
-| **Submissions** | id, user\_id, course\_id, quiz\_score, essay\_text, status (Pending, Approved, Rejected) | The master log for compliance and grading. |
-| **Certificates** | id, user\_id, course\_id, pdf\_url, issued\_date | Generated asynchronously by n8n. |
+Learner + Module -> UserProgress
+Learner + Quiz   -> immutable QuizAttempts
+Learner + Course -> one CourseCompletion -> one Certificate
+                                      |
+                                      +-> zero or one FeedbackResponse
+```
 
-## **4\. System Workflows & Integrations**
+For a `module_quiz_v2` course, the module CPE sum is the learner-visible course total. The completion and certificate copy that value so later configuration edits do not rewrite an earned award.
 
-### **4.1 Authentication & Database Access**
+The certificate lifecycle is `pending -> processing -> issued -> delivered`, with sanitized `failed` evidence and controlled retry. n8n receives only the certificate ID and uses the certificate's snapshot fields; it never reads an essay submission or current module CPE.
 
-* **Action:** Remove Clerk Auth and Prisma ORM from the Next.js clone.  
-* **Implementation:** Integrate the `@directus/sdk` in Next.js. Authentication handles sessions via Directus JWTs. All Next.js data fetching (e.g., loading course lists) is executed via REST/GraphQL queries to the Directus endpoints using the authenticated user's token, ensuring Role-Based Access Control (RBAC) is respected.
-* **Public Guest Access:** To optimize B2C conversions, users can browse the course catalog (`/search`) and view course details/free previews (`/courses/[courseId]`) anonymously. The system queries public-published items directly from Directus without a session. Authentication is deferred and only enforced when the user attempts to enroll in a course (Square checkout) or track module progress.
+## Security boundaries
 
-### **4.2 Payment & Access Provisioning (Square)**
+- Public users may browse published catalog data and free previews only.
+- Learner commands require authentication, an active purchase, and a valid course-to-module-to-quiz relationship.
+- The browser cannot set scores, pass results, completion timestamps, CPE awards, certificate status, or learner identity.
+- Correct answers are withheld until the corresponding answer is submitted.
+- Learners cannot read another learner's progress, attempts, completion, certificate, or feedback.
+- Feedback comments and certificate failure detail are administrator-only and rendered as plain text.
+- n8n uses a least-privilege service credential and stable certificate ID for idempotency.
 
-* **Checkout:** Next.js requests a Square Payment Link session via a custom route.  
-* **Webhook:** Upon successful payment, Square fires a webhook to Next.js (`/api/webhook`).  
-* **Provisioning:** Next.js creates a record in the **Purchases** table in Directus, unlocking the course for the User ID.
+## Migration and coexistence
 
-### **4.3 The Custom Assessment Engine**
+Legacy and v2 courses coexist behind `Courses.structure_version`. Migration is additive and course-scoped:
 
-* **Frontend:** Since the clone lacks quizzes, build a custom React component that fetches the **Questions** payload from Directus. It manages active attempt state and submits the final user answers. The FE must look and feel as an integral part of the overall application (i.e. use common elements and components to make the experience seamless)   
-* **Validation:** Directus receives the submission, calculates the score server-side to prevent cheating, and requires the text input for the Case Study. The record is saved in **Submissions** with a "Pending" status.
+1. Install the Directus schema and PostgreSQL constraints.
+2. Generate a live dry-run manifest.
+3. Obtain explicit owner approval for module CPE, quiz ownership, and canonical historical certificates.
+4. Validate the unchanged live inventory without writes.
+5. Migrate configuration and the furthest defensible learner evidence, reconcile historical certificates, and activate that course.
+6. Observe production completions and run `cleanup-check`.
+7. Retire compatibility readers and writes only when every course is v2 and reconciliation is clean.
 
-### **4.4 Certificate & Automation Pipeline (n8n)**
+Standalone quiz and essay modules, `QuizProgress`, `Submissions`, `Modules.type`, `UserProgress.is_completed`, and `Courses.cpe_hours` remain compatibility-only during coexistence. Historical rows are retained until a separate retention decision authorizes physical deletion.
 
-* **Trigger:** Admin reviews the Case Study in the Directus Dashboard and changes the Submission status to "Approved".  
-* **Webhook:** Directus fires a native webhook to an n8n endpoint containing the user\_id and course\_id.  
-* **Processing:** n8n queries Directus for the user's Full Name and TEA Provider Number. It maps these variables into a pre-formatted Google Docs template.  
-* **Generation:** n8n exports the Google Doc as a PDF.  
-* **Delivery:** n8n triggers the Email API (Resend) to email the PDF to the user and writes the PDF URL back to the **Certificates** table in Directus for future access.
+Operational detail is in the [module-course migration runbook](./MODULE%20COURSE%20MIGRATION%20RUNBOOK.md) and [completion and certificate runbook](./COURSE%20COMPLETION%20AND%20CERTIFICATE%20RUNBOOK.md).
 
-### **4.5 Video Progress Guard (Seeking Restrictions)**
+## Verification gates
 
-* **Compliance Requirement:** To satisfy TEA certificate requirements, students must watch video modules in their entirety.
-* **Implementation:** The Next.js video component intercepts seek events via the Mux Player `onTimeUpdate` and `onSeeking` event streams.
-* **Behavior:** The player tracks the furthest watched timestamp. If a student attempts to seek forward beyond this point, the video snaps back to the furthest watched time and triggers a warning toast. Backward seeking is fully enabled to permit review.
+### Test
 
-## **5\. Implementation Phases**
+1. Run migration, completion, feedback, and certificate workflow contract tests.
+2. Run TypeScript, lint, and the production build.
+3. Run the live migration verifier with database constraint access.
+4. Prove an unapproved or inventory-stale manifest changes no course.
+5. Exercise one-module and multi-module completion, failed retake, duplicate final submission, feedback close/submit, certificate failure/retry, and migrated-certificate replay scenarios.
 
-1. **Phase 1: Infrastructure & Backend Foundation**  
-   * Provision managed PostgreSQL DB and Directus instance (e.g., Railway/DigitalOcean).  
-   * Define all Data Schema collections and relationships inside Directus.  
-   * Configure Directus Roles and Permissions (Public, Student, Admin).  
-2. **Phase 2: Frontend Surgery**  
-   * Clone the Antonio Next.js repo.  
-   * Strip out Prisma and Clerk.  
-   * Wire up the @directus/sdk for authentication and fetch dynamic course data.  
-3. **Phase 3: Video **  
-   * Connect Mux for module video playback.  
-   * Implement forward-seek prevention logic in the video player to ensure course completion compliance.
-4. **Phase 4: Custom Assessment Engineering**  
-   * Integrate with email service - send highly detailed and itemized invoice/receipt emails for payments.  
-   * Build the Frontend Quiz & Essay submission UI.  
-   * Implement the submission logic and Directus storage.  
-5. **Phase 5: Google Registration, Account Deletion & Automation Pipeline**  
-   * Implement server-side Google OAuth authentication and auto-registration for Students.
-   * Add `/confirm-profile` gating to enforce official Legal Name confirmation.
-   * Implement destructive "Delete user" cascading DB cleanup next to "Clean user".
-   * Deploy n8n.  
-   * Design the Google Doc Certificate template.  
-   * Build the Webhook \-> n8n \-> Google Doc \-> PDF \-> Email flow.
-   * Remove "Clean user" button (in production environment).
-6. **Phase 6: matching guidingdiversity.com styling**
-    Use the same UI styling and components as guidingdiversity.com
-    * Replicate the color palette, typography (font sizes, weights, line heights), spacing system, button styles, and card designs from guidingdiversity.com.
-    * Update all Next.js components to use the new custom styles instead of default Tailwind classes.
-7. **Phase 7: Payments**
-   * Integrate Square Checkout (Payment Links) and setup the webhook listener in Next.js.  
+### Pass when
 
-## **6. Phase Verification & Exit Gates**
-
-### **Phase 2 Exit Gate: Frontend Surgery**
-* **Build Check:** Next.js application compiles cleanly using `npm run build` with zero TypeScript or webpack errors.
-* **Authentication:** Custom `/sign-in` and `/sign-up` forms successfully verify, create, and log in Directus users. Legal Name (required) and TEA ID (optional) are persisted.
-* **Session Management:** Secure HTTP-only cookies (`directus_access_token` and `directus_refresh_token`) protect personalized student portals (e.g., `/` home dashboard and checkout/progress api routes), while catalog search and preview chapters are publicly accessible.
-* **Data Retrieval:** Action helpers successfully load dynamic course and chapter lists directly from the Directus REST API.
-
-### **Phase 3 Exit Gate: Video & Payments**
-
-* **Webhook Provisioning:** Square's success callback fires to `/api/webhook`, which uses the Directus SDK to provision an active course purchase.
-* **Mux Video Playback:** Module video components retrieve and stream Mux playback IDs. Free previews play immediately; locked modules require active purchase validation.
-* **Video Seeking Restriction:** Video component intercepts seeking forward past the furthest watched point and snaps the playback position back to safeguard compliance.
-
-### **Phase 4 Exit Gate: Custom Assessment Engineering**
-
-A rigorous, step-by-step verification plan is required to validate Phase 4 without browser E2E test suites (using developer checks, terminal queries, and component testing instead):
-
-#### **Test Setup & Database Seeding**
-1. Run the custom seed script to insert:
-   - 1 Quiz module with 5 ADHD-related multiple-choice questions (options, correct answer index, and text explanation for each).
-   - 1 Essay module at the end of the course.
-2. Ensure you have a test user registered (e.g. `gil.segev1@gmail.com`) and enrolled in the course.
-
-#### **1. Access Gating & Sequencing Verification**
-* **Step 1.1: Initial Locks Check**
-  - Log in as the student and navigate to the course.
-  - Verify that both the **Quiz** and **Essay** modules are marked as locked (rendered with a lock icon) in the sidebar.
-  - Try accessing `/courses/[courseId]/chapters/[quizModuleId]` directly via URL. Verify that the server redirects you or displays a premium "locked" screen preventing access.
-* **Step 1.2: Partial Completion Check**
-  - Watch or mark complete some, but not all, video modules.
-  - Verify that the Quiz remains locked in the sidebar and Chapter details view.
-* **Step 1.3: Quiz Unlocking**
-  - Mark all preceding video modules completed.
-  - Verify that the Quiz module in the sidebar immediately updates:
-    - Lock icon is replaced with the `HelpCircle` quiz icon.
-    - Clicking the Quiz in the sidebar now successfully opens the quiz layout.
-    - The **Essay** module remains locked with a lock icon.
-
-#### **2. Single-Question Quiz Interaction & Feedback Verification**
-* **Step 2.1: Single-Question Layout**
-  - On the Quiz page, verify that only the first question is rendered.
-  - Verify that progress text (e.g., "Question 1 of 5") matches the seeded questions.
-  - Verify the "Submit Answer" button is enabled only after selecting an option.
-* **Step 2.2: Real-time Inline Feedback**
-  - Select the correct answer and click "Submit Answer".
-  - Verify that:
-    - The options are locked (disabled).
-    - The correct option is highlighted with a green border/background.
-    - The detailed explanation text is rendered underneath the question.
-  - Click "Next" to go to Question 2.
-  - Select an incorrect answer and click "Submit Answer".
-  - Verify that:
-    - The options are locked.
-    - The incorrect selection is highlighted in red.
-    - The correct answer is highlighted in green.
-    - The explanation text is rendered.
-* **Step 2.3: Backward Navigation**
-  - On Question 3, click the "Previous" button.
-  - Verify that the UI displays Question 2 in a read-only state, preserving your submitted selection, the correct/incorrect styling, and explanation.
-
-#### **3. State Recovery & Persistence Verification**
-* **Step 3.1: Quiz State Persistence**
-  - Submit answers for Questions 1 and 2.
-  - Refresh the page, or navigate to a different route and return to the Quiz page.
-  - Verify that the quiz recovers at **Question 3**.
-  - Click "Previous" to verify that your answers to Questions 1 and 2 are fully recovered and styled correctly.
-  - Run a database check script or query Directus `QuizProgress` table:
-    - Verify that the `answers` JSON field contains a map of the submitted question IDs to their selected option indexes.
-    - Verify that `is_completed` is `false`.
-
-#### **4. Passing Threshold & Retake Verification**
-* **Step 4.1: Quiz Fail Path (< 80%)**
-  - Complete the remaining questions so that the total score is less than 80% (e.g. 3 out of 5 correct is 60%).
-  - Click the final "Submit Quiz" button.
-  - Verify that:
-    - A "Fail" screen is displayed indicating your score of 60%.
-    - A "Retake Quiz" button is rendered.
-    - The **Essay** module in the sidebar remains locked.
-  - Refresh the page and verify that the "Fail" screen remains active (read-only persistence).
-* **Step 4.2: Quiz Reset / Retake**
-  - Click the "Retake Quiz" button.
-  - Verify that:
-    - The quiz starts over at Question 1.
-    - Option inputs are unlocked and selectables are reset.
-    - Directus check: verify `QuizProgress` record for this user/module has its `answers` JSON reset to `{}` and `is_completed` is `false`.
-* **Step 4.3: Quiz Pass Path (>= 80%)**
-  - Complete the quiz selecting at least 4 out of 5 correct answers (80% or 100%).
-  - Click the final "Submit Quiz" button.
-  - Verify that:
-    - A success confetti animation is triggered.
-    - A "Pass" screen is displayed showing your passing score.
-    - The Essay module in the sidebar immediately unlocks (displays `FileText` icon, is clickable).
-    - Directus check: verify `UserProgress` has a completed record for the Quiz module (`is_completed: true`).
-
-#### **5. Essay Draft Saving & Submission Lifecycle Verification**
-* **Step 5.1: Essay Draft Recovery**
-  - Navigate to the newly unlocked Essay chapter.
-  - Type a partial sentence (e.g. "This is my initial draft...").
-  - Wait 2 seconds and observe the "Draft saved" status indicator.
-  - Navigate to the course dashboard and then back to the Essay chapter.
-  - Verify that the text "This is my initial draft..." is recovered in the editor.
-  - Query Directus `Submissions` table: verify a record exists for this user/course with `status: "Draft"` and `essay_text: "This is my initial draft..."`.
-* **Step 5.2: Submission Confirmation Modal**
-  - Click "Submit Assessment".
-  - Verify that a confirmation modal is displayed asking if you are sure you want to submit.
-  - Click "Cancel". Verify you can still edit the text area.
-* **Step 5.3: Submission Status Change**
-  - Click "Submit Assessment" again and click "Confirm".
-  - Verify that:
-    - The text area becomes read-only (disabled).
-    - The "Submit" button is replaced with a banner showing: "Status: Pending Review - An instructor will grade your essay within 3 days."
-    - Directus check: verify the `Submissions` record status is updated to `"Pending"`.
-    - Directus check: verify `UserProgress` has a completed record for the Essay module (`is_completed: true`).
-    - The course sidebar progress shows 100% completion (if all videos, quiz, and essay are marked completed).
-
-### **Phase 5 Exit Gate: Google Registration, Account Deletion & Automation Pipeline**
-* **Google OAuth Registration:** Custom Google login flow successfully registers new students, bypasses Directus OIDC cookie limitations via server-to-server exchange, and logs users in.
-* **Profile Gating:** Users with missing `legal_name` are forced to `/confirm-profile` to input legal names and select a compliance checkbox. NEXT_REDIRECT exceptions are handled correctly.
-* **Destructive Deletion:** Destructive "Delete user" button triggers `POST /api/user/delete` with confirmation modal. Relational records in `Purchases`, `UserProgress`, `Submissions`, `Certificates`, and `QuizProgress` are cascadingly deleted before the user's `directus_users` record is removed and cookies are cleared.
-* **Webhook Trigger:** Setting status to `Approved` in Directus fires a webhook to n8n.
-* **Doc Compilation:** n8n compiles PDF certificate, sends email, and writes PDF URL to Directus `Certificates`.
-
-### **Phase 7 Exit Gate: Payments**
-* **Checkout Redirect:** Triggering checkout dynamically creates a Square payment link and redirects the user to the secure Square checkout page.
+- Module sums match every learner-visible CPE total and immutable award snapshot.
+- Failed quizzes and incomplete prerequisites cannot create a completion.
+- Duplicate requests converge on one completion, certificate record, and accepted email.
+- Certificate failure remains observable and retryable without changing completion.
+- Feedback is optional, unique per completion, and administrator-only.
+- Migration preserves defensible progress and existing certificates without silent guessing or reissuance.
+- `cleanup-check` reports ready before any compatibility behavior is removed.

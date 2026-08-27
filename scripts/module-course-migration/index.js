@@ -4,6 +4,7 @@ const path = require("path");
 const { generateManifest } = require("./core");
 const { applyContentMigration } = require("./content");
 const { createDirectusClient, readInventory } = require("./directus");
+const { buildRolloutReport } = require("./rollout");
 const {
   applyDatabaseConstraints,
   applyDirectusSchema,
@@ -34,11 +35,12 @@ Commands:
   manifest --output <file>            Generate a read-only production inventory and approval manifest.
   apply --manifest <file> [--execute] Validate, then apply only explicitly approved course entries.
   verify                              Verify the installed schema and summarize migration state.
+  cleanup-check                       Fail closed until legacy runtime behavior can be retired safely.
 
 The schema and apply commands are dry-run unless --execute is supplied.`);
 }
 
-async function verify(client) {
+async function buildVerificationSummary(client) {
   const collections = await client.request("/collections?limit=-1");
   const collectionNames = new Set(collections.map((row) => row.collection));
   const missing = [];
@@ -62,8 +64,16 @@ async function verify(client) {
     return counts;
   }, {});
   const database = await verifyDatabaseConstraints();
-  const summary = {
-    schema: missing.length === 0 && database.missing.length === 0 ? "complete" : "incomplete",
+  const rollout = buildRolloutReport(inventory);
+  if (!database.checked) rollout.cleanupReadiness.blockers.push("database constraints were not checked");
+  if (database.missing.length > 0) rollout.cleanupReadiness.blockers.push("database constraints are incomplete");
+  if (missing.length > 0) rollout.cleanupReadiness.blockers.push("Directus schema or permissions are incomplete");
+  rollout.cleanupReadiness.blockers = [...new Set(rollout.cleanupReadiness.blockers)];
+  rollout.cleanupReadiness.ready = rollout.cleanupReadiness.blockers.length === 0;
+  return {
+    schema: missing.length > 0 || database.missing.length > 0
+      ? "incomplete"
+      : database.checked ? "complete" : "database_unchecked",
     missing,
     databaseConstraints: database,
     courseStructureVersions: states,
@@ -74,9 +84,18 @@ async function verify(client) {
       linkedCertificates: inventory.certificates.filter((row) => row.completion_id).length,
       legacyCertificates: inventory.certificates.filter((row) => !row.completion_id).length,
     },
+    rollout,
   };
+}
+
+async function verify(client, requireCleanupReady = false) {
+  const summary = await buildVerificationSummary(client);
   console.log(JSON.stringify(summary, null, 2));
-  if (missing.length > 0 || database.missing.length > 0) process.exitCode = 1;
+  if (
+    summary.missing.length > 0
+    || summary.databaseConstraints.missing.length > 0
+    || (requireCleanupReady && !summary.rollout.cleanupReadiness.ready)
+  ) process.exitCode = 1;
 }
 
 async function main() {
@@ -124,6 +143,11 @@ async function main() {
 
   if (options.command === "verify") {
     await verify(client);
+    return;
+  }
+
+  if (options.command === "cleanup-check") {
+    await verify(client, true);
     return;
   }
 

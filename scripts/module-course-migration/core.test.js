@@ -36,7 +36,7 @@ test("validation accepts a fully approved, reconciled course", () => {
   const manifest = generateManifest(live);
   const course = manifest.courses[0];
   course.action = "migrate";
-  course.approval = { approved: true, approvedBy: "Course owner", approvedAt: "2026-08-26T00:00:00.000Z" };
+  course.approval = { approved: true, approvedBy: "Course owner", approvedAt: manifest.generatedAt };
   course.contentModules[0].cpeValue = 1;
   course.quizMappings[0].approvedContentModuleId = "content";
   assert.deepEqual(validateManifest(manifest, live), []);
@@ -47,7 +47,7 @@ test("validation rejects missing CPE approval and final quiz ownership", () => {
   const manifest = generateManifest(live);
   const course = manifest.courses[0];
   course.action = "migrate";
-  course.approval = { approved: true, approvedBy: "Course owner", approvedAt: "2026-08-26T00:00:00.000Z" };
+  course.approval = { approved: true, approvedBy: "Course owner", approvedAt: manifest.generatedAt };
   const errors = validateManifest(manifest, live);
   assert(errors.some((error) => error.includes("non-negative integer CPE")));
   assert(errors.some((error) => error.includes("final content module")));
@@ -63,9 +63,40 @@ test("validation requires an explicit canonical certificate when legacy duplicat
   const manifest = generateManifest(live);
   const course = manifest.courses[0];
   course.action = "migrate";
-  course.approval = { approved: true, approvedBy: "Course owner", approvedAt: "2026-08-26T00:00:00.000Z" };
+  course.approval = { approved: true, approvedBy: "Course owner", approvedAt: manifest.generatedAt };
   course.contentModules[0].cpeValue = 1;
   course.quizMappings[0].approvedContentModuleId = "content";
   const errors = validateManifest(manifest, live);
   assert(errors.some((error) => error.includes("canonical legacy certificate")));
+});
+
+test("already migrated courses are reported without approval blockers", () => {
+  const manifest = generateManifest(inventory({
+    courses: [{ id: "course", title: "Course", cpe_hours: 1, is_published: true, structure_version: "module_quiz_v2" }],
+  }));
+  assert.equal(manifest.courses[0].migrationState, "already_migrated");
+  assert.deepEqual(manifest.courses[0].blockers, []);
+  assert.equal(manifest.summary.migratedCourses, 1);
+  assert.equal(manifest.summary.legacyCourses, 0);
+});
+
+test("validation fails closed when certificate evidence changes after approval", () => {
+  const original = inventory({
+    certificates: [{ id: "certificate-1", user_id: "user", course_id: "course" }],
+  });
+  const manifest = generateManifest(original);
+  const course = manifest.courses[0];
+  course.action = "migrate";
+  course.approval = { approved: true, approvedBy: "Course owner", approvedAt: manifest.generatedAt };
+  course.contentModules[0].cpeValue = 1;
+  course.quizMappings[0].approvedContentModuleId = "content";
+
+  const changed = inventory({
+    certificates: [
+      { id: "certificate-1", user_id: "user", course_id: "course" },
+      { id: "certificate-2", user_id: "user", course_id: "course" },
+    ],
+  });
+  const errors = validateManifest(manifest, changed);
+  assert(errors.some((error) => error.includes("certificate inventory changed")));
 });

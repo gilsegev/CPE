@@ -30,7 +30,7 @@ function createDirectusClient() {
 }
 
 async function readInventory(client) {
-  const [courses, modules, quizzes, questions, userProgress, quizProgress, submissions, certificates] = await Promise.all([
+  const [courses, modules, quizzes, questions, userProgress, quizProgress, submissions, certificates, courseCompletions] = await Promise.all([
     client.listAll("Courses", "id,title,cpe_hours,is_published,structure_version"),
     client.listAll("Modules", "id,course_id,title,order_index,type,cpe_value,migration_status"),
     client.listAll("Quizzes", "id,module_id,passing_score,is_enabled"),
@@ -38,9 +38,10 @@ async function readInventory(client) {
     client.listAll("UserProgress", "id,user_id,module_id,is_completed,content_completed_at,quiz_passed_at,completed_at"),
     client.listAll("QuizProgress", "id,user_id,module_id,answers,is_completed"),
     client.listAll("Submissions", "id,user_id,course_id,status"),
-    client.listAll("Certificates", "id,user_id,course_id,pdf_url,issued_date,completion_id,status"),
+    client.listAll("Certificates", "id,user_id,course_id,pdf_url,issued_date,completion_id,status,cpe_earned,last_attempt_at"),
+    client.listAll("CourseCompletions", "id,user_id,course_id,completed_at,cpe_earned,module_snapshot,final_quiz_attempt_id"),
   ]);
-  return { courses, modules, quizzes, questions, userProgress, quizProgress, submissions, certificates };
+  return { courses, modules, quizzes, questions, userProgress, quizProgress, submissions, certificates, courseCompletions };
 }
 
 module.exports = { createDirectusClient, readInventory };

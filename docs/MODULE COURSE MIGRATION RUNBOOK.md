@@ -20,7 +20,8 @@ When running locally against Railway, inject the PostGIS service's public databa
 ```powershell
 $pgVariables = railway variables --service PostGIS --json | ConvertFrom-Json
 $env:MODULE_COURSE_DB_URL = $pgVariables.DATABASE_PUBLIC_URL
-railway run --service CPE npm run migration:module-courses -- schema --execute
+railway run --service CPE node scripts/module-course-migration/index.js schema --execute
+Remove-Item Env:MODULE_COURSE_DB_URL
 ```
 
 ## Workflow
@@ -47,7 +48,7 @@ Verify reconciliation and course activation
 Generate the local manifest:
 
 ```powershell
-railway run --service CPE npm run migration:module-courses -- manifest --output migration/manifests/module-course-v2.production.local.json
+railway run --service CPE node scripts/module-course-migration/index.js manifest --output migration/manifests/module-course-v2.production.local.json
 ```
 
 For each course, keep `action` as `defer` until all of these are resolved:
@@ -55,30 +56,46 @@ For each course, keep `action` as `defer` until all of these are resolved:
 - Set each content module's non-negative integer `cpeValue`; the sum must equal `legacyCourseCpe`.
 - Confirm each quiz owner by copying the approved module ID into `approvedContentModuleId`.
 - For every certificate group, choose one `canonicalCertificateId` from its listed IDs.
-- Set `approval.approved` to `true`, record the approver, and use an ISO-8601 approval time.
+- Set `approval.approved` to `true`, record the approver, and use an ISO-8601 approval time at or after the manifest's `generatedAt` value.
 - Change `action` to `migrate`.
 
 Validate without writes:
 
 ```powershell
-railway run --service CPE npm run migration:module-courses -- apply --manifest migration/manifests/module-course-v2.production.local.json
+railway run --service CPE node scripts/module-course-migration/index.js apply --manifest migration/manifests/module-course-v2.production.local.json
 ```
 
 Apply only after validation reports `"executable": true`:
 
 ```powershell
-railway run --service CPE npm run migration:module-courses -- apply --manifest migration/manifests/module-course-v2.production.local.json --execute
+railway run --service CPE node scripts/module-course-migration/index.js apply --manifest migration/manifests/module-course-v2.production.local.json --execute
 ```
 
 Verify the result, including PostgreSQL constraints and administrator-only feedback permissions when the database environment variable is available:
 
 ```powershell
-railway run --service CPE npm run migration:module-courses -- verify
+$pgVariables = railway variables --service PostGIS --json | ConvertFrom-Json
+$env:MODULE_COURSE_DB_URL = $pgVariables.DATABASE_PUBLIC_URL
+railway run --service CPE node scripts/module-course-migration/index.js verify
+Remove-Item Env:MODULE_COURSE_DB_URL
 ```
+
+The validator rejects a manifest when live course modules, quizzes, essays, or certificate groups changed after owner approval. Regenerate the manifest and obtain a new approval; do not copy decisions into changed inventory without review.
+
+After observing production completions, run the destructive-cleanup gate:
+
+```powershell
+$pgVariables = railway variables --service PostGIS --json | ConvertFrom-Json
+$env:MODULE_COURSE_DB_URL = $pgVariables.DATABASE_PUBLIC_URL
+railway run --service CPE node scripts/module-course-migration/index.js cleanup-check
+Remove-Item Env:MODULE_COURSE_DB_URL
+```
+
+`cleanup-check` exits unsuccessfully while any course is legacy, a v2 course violates activation invariants, completion/certificate reconciliation is dirty, or database constraints were not checked. Only a successful result authorizes a later code change that removes compatibility readers and writes. It does not delete historical rows.
 
 ## Test
 
-Run `npm run test:migration`, `npx tsc --noEmit`, and the live `verify` command. Validate the production manifest once before approval to prove the negative path makes no content changes.
+Run `npm run test:migration`, `npx tsc --noEmit`, and the live `verify` command. Validate the production manifest once before approval to prove the negative path makes no content changes. Run `cleanup-check` as the explicit negative or positive gate before proposing legacy-path removal.
 
 ## Pass when
 
@@ -88,3 +105,4 @@ Run `npm run test:migration`, `npx tsc --noEmit`, and the live `verify` command.
 - Every approved course reports `migrated_and_activated` exactly once; a rerun reports `already_migrated`.
 - Existing submissions and duplicate historical certificate rows remain present.
 - Each selected canonical certificate links to one immutable course completion without generating or emailing another certificate.
+- Cleanup remains blocked until every course is v2 and completion/certificate reconciliation is clean.

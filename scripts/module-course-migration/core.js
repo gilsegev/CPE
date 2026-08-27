@@ -35,6 +35,7 @@ function generateManifest(inventory, generatedAt = new Date().toISOString()) {
   const certificatesByCourse = groupBy(inventory.certificates, (certificate) => asId(certificate.course_id));
 
   const courses = inventory.courses.map((course) => {
+    const isAlreadyMigrated = (course.structure_version || "legacy") === V2_STRUCTURE_VERSION;
     const orderedModules = [...(modulesByCourse[course.id] || [])].sort(byOrder);
     const contentModules = orderedModules.filter((module) => (module.type || "video") === "video");
     const quizShells = orderedModules.filter((module) => module.type === "quiz");
@@ -67,22 +68,25 @@ function generateManifest(inventory, generatedAt = new Date().toISOString()) {
 
     const blockers = [];
     const legacyCpe = course.cpe_hours == null ? null : Number(course.cpe_hours);
-    if (!Number.isInteger(legacyCpe) || legacyCpe <= 0) blockers.push("course_cpe_missing_or_invalid");
-    if (contentModules.length === 0) blockers.push("content_module_missing");
-    if (quizShells.length === 0) blockers.push("final_module_quiz_missing");
-    if (quizMappings.some((mapping) => !mapping.suggestedContentModuleId)) blockers.push("quiz_mapping_ambiguous");
-    if (quizMappings.some((mapping) => mapping.questionCount === 0)) blockers.push("quiz_questions_missing");
-    if (certificateGroups.some((group) => group.certificateIds.length > 1)) blockers.push("duplicate_legacy_certificates");
-    if (courseCertificates.length > 0 && (!Number.isInteger(legacyCpe) || legacyCpe <= 0)) {
-      blockers.push("certificate_cpe_missing");
+    if (!isAlreadyMigrated) {
+      if (!Number.isInteger(legacyCpe) || legacyCpe <= 0) blockers.push("course_cpe_missing_or_invalid");
+      if (contentModules.length === 0) blockers.push("content_module_missing");
+      if (quizShells.length === 0) blockers.push("final_module_quiz_missing");
+      if (quizMappings.some((mapping) => !mapping.suggestedContentModuleId)) blockers.push("quiz_mapping_ambiguous");
+      if (quizMappings.some((mapping) => mapping.questionCount === 0)) blockers.push("quiz_questions_missing");
+      if (certificateGroups.some((group) => group.certificateIds.length > 1)) blockers.push("duplicate_legacy_certificates");
+      if (courseCertificates.length > 0 && (!Number.isInteger(legacyCpe) || legacyCpe <= 0)) {
+        blockers.push("certificate_cpe_missing");
+      }
+      blockers.push("module_cpe_allocation_unapproved");
+      if (quizMappings.length > 0) blockers.push("quiz_mapping_unapproved");
     }
-    blockers.push("module_cpe_allocation_unapproved");
-    if (quizMappings.length > 0) blockers.push("quiz_mapping_unapproved");
 
     return {
       courseId: course.id,
       title: course.title,
       currentStructureVersion: course.structure_version || "legacy",
+      migrationState: isAlreadyMigrated ? "already_migrated" : "awaiting_approval",
       published: Boolean(course.is_published),
       legacyCourseCpe: legacyCpe,
       action: "defer",
@@ -133,17 +137,31 @@ function generateManifest(inventory, generatedAt = new Date().toISOString()) {
     summary: {
       courses: courses.length,
       publishedCourses: courses.filter((course) => course.published).length,
-      immediatelyMigratableCourses: courses.filter((course) => course.blockers.length === 0).length,
-      blockerCounts: countBy(courses.flatMap((course) => course.blockers), (blocker) => blocker),
+      migratedCourses: courses.filter((course) => course.migrationState === "already_migrated").length,
+      legacyCourses: courses.filter((course) => course.migrationState !== "already_migrated").length,
+      immediatelyMigratableCourses: courses.filter(
+        (course) => course.migrationState !== "already_migrated" && course.blockers.length === 0,
+      ).length,
+      blockerCounts: countBy(
+        courses.filter((course) => course.migrationState !== "already_migrated").flatMap((course) => course.blockers),
+        (blocker) => blocker,
+      ),
     },
   };
 }
 
-function validateApprovedCourse(manifestCourse, inventory) {
+function validateApprovedCourse(manifestCourse, inventory, manifestGeneratedAt) {
   const errors = [];
   if (manifestCourse.action !== "migrate") return errors;
   if (!manifestCourse.approval?.approved || !manifestCourse.approval.approvedBy || !manifestCourse.approval.approvedAt) {
     errors.push("course migration is not explicitly approved");
+  } else {
+    const approvedAt = Date.parse(manifestCourse.approval.approvedAt);
+    const generatedAt = Date.parse(manifestGeneratedAt || "");
+    if (!Number.isFinite(approvedAt)) errors.push("course approval time is not a valid ISO-8601 timestamp");
+    if (Number.isFinite(generatedAt) && Number.isFinite(approvedAt) && approvedAt < generatedAt) {
+      errors.push("course approval predates the migration inventory");
+    }
   }
 
   const course = inventory.courses.find((row) => row.id === manifestCourse.courseId);
@@ -156,6 +174,10 @@ function validateApprovedCourse(manifestCourse, inventory) {
   if (allocations.length !== liveContentIds.size || allocations.some((allocation) => !liveContentIds.has(allocation.moduleId))) {
     errors.push("content module inventory changed after the manifest was generated");
   }
+  const liveModuleById = new Map(liveModules.map((module) => [module.id, module]));
+  if (allocations.some(
+    (allocation) => Number(liveModuleById.get(allocation.moduleId)?.order_index) !== Number(allocation.legacyOrderIndex),
+  )) errors.push("content module order changed after the manifest was generated");
   if (allocations.some((allocation) => !Number.isInteger(allocation.cpeValue) || allocation.cpeValue < 0)) {
     errors.push("every content module needs an approved non-negative integer CPE value");
   }
@@ -166,6 +188,19 @@ function validateApprovedCourse(manifestCourse, inventory) {
 
   const liveQuizzes = new Map(inventory.quizzes.map((quiz) => [quiz.id, quiz]));
   const liveQuestions = groupBy(inventory.questions, (question) => asId(question.quiz_id));
+  const liveCourseModuleIds = new Set(liveModules.map((module) => module.id));
+  const liveLegacyQuizIds = new Set(
+    inventory.quizzes
+      .filter((quiz) => liveCourseModuleIds.has(asId(quiz.module_id)))
+      .map((quiz) => quiz.id),
+  );
+  const manifestQuizIds = new Set((manifestCourse.quizMappings || []).map((mapping) => mapping.quizId));
+  if (
+    liveLegacyQuizIds.size !== manifestQuizIds.size
+    || [...liveLegacyQuizIds].some((quizId) => !manifestQuizIds.has(quizId))
+  ) {
+    errors.push("legacy quiz inventory changed after the manifest was generated");
+  }
   for (const mapping of manifestCourse.quizMappings || []) {
     const quiz = liveQuizzes.get(mapping.quizId);
     if (!quiz) {
@@ -176,9 +211,16 @@ function validateApprovedCourse(manifestCourse, inventory) {
       errors.push(`quiz ${mapping.quizId} ownership changed after the manifest was generated`);
     }
     if (!liveContentIds.has(mapping.approvedContentModuleId)) errors.push(`quiz ${mapping.quizId} has no approved content-module owner`);
-    if ((liveQuestions[mapping.quizId] || []).length === 0) errors.push(`quiz ${mapping.quizId} has no questions`);
+    const questionCount = (liveQuestions[mapping.quizId] || []).length;
+    if (questionCount === 0) errors.push(`quiz ${mapping.quizId} has no questions`);
+    if (questionCount !== Number(mapping.questionCount)) {
+      errors.push(`quiz ${mapping.quizId} question inventory changed after the manifest was generated`);
+    }
     if (!Number.isInteger(Number(quiz.passing_score)) || Number(quiz.passing_score) < 0 || Number(quiz.passing_score) > 100) {
       errors.push(`quiz ${mapping.quizId} has an invalid passing score`);
+    }
+    if (Number(quiz.passing_score) !== Number(mapping.passingScore)) {
+      errors.push(`quiz ${mapping.quizId} passing score changed after the manifest was generated`);
     }
   }
 
@@ -187,6 +229,42 @@ function validateApprovedCourse(manifestCourse, inventory) {
     (mapping) => mapping.approvedContentModuleId === finalContent?.id,
   );
   if (!finalQuiz) errors.push("the final content module does not have an approved enabled quiz");
+
+  const liveEssayIds = new Set(liveModules.filter((module) => module.type === "essay").map((module) => module.id));
+  const manifestEssayIds = new Set(
+    (manifestCourse.excludedLegacyModules || [])
+      .filter((module) => module.type === "essay")
+      .map((module) => module.moduleId),
+  );
+  if (
+    liveEssayIds.size !== manifestEssayIds.size
+    || [...liveEssayIds].some((moduleId) => !manifestEssayIds.has(moduleId))
+  ) {
+    errors.push("legacy essay inventory changed after the manifest was generated");
+  }
+
+  const liveCertificateGroups = Object.entries(groupBy(
+    inventory.certificates.filter((certificate) => asId(certificate.course_id) === manifestCourse.courseId),
+    (certificate) => asId(certificate.user_id),
+  ));
+  const selectionByUser = new Map(
+    (manifestCourse.certificateSelections || []).map((selection) => [selection.userId, selection]),
+  );
+  if (
+    liveCertificateGroups.length !== selectionByUser.size
+    || liveCertificateGroups.some(([userId]) => !selectionByUser.has(userId))
+  ) {
+    errors.push("legacy certificate learner inventory changed after the manifest was generated");
+  }
+  for (const [userId, certificates] of liveCertificateGroups) {
+    const selection = selectionByUser.get(userId);
+    if (!selection) continue;
+    const liveIds = new Set(certificates.map((certificate) => certificate.id));
+    const manifestIds = new Set(selection.certificateIds || []);
+    if (liveIds.size !== manifestIds.size || [...liveIds].some((certificateId) => !manifestIds.has(certificateId))) {
+      errors.push(`learner ${userId} certificate inventory changed after the manifest was generated`);
+    }
+  }
 
   for (const selection of manifestCourse.certificateSelections || []) {
     const liveCertificates = inventory.certificates.filter(
@@ -209,8 +287,9 @@ function validateApprovedCourse(manifestCourse, inventory) {
 function validateManifest(manifest, inventory) {
   const errors = [];
   if (manifest.manifestVersion !== MANIFEST_VERSION) errors.push(`unsupported manifest version ${manifest.manifestVersion}`);
+  if (!Number.isFinite(Date.parse(manifest.generatedAt))) errors.push("manifest generatedAt is not a valid ISO-8601 timestamp");
   for (const course of manifest.courses || []) {
-    for (const error of validateApprovedCourse(course, inventory)) {
+    for (const error of validateApprovedCourse(course, inventory, manifest.generatedAt)) {
       errors.push(`${course.title || course.courseId}: ${error}`);
     }
   }

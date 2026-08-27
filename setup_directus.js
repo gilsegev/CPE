@@ -2,7 +2,10 @@
  * Directus Schema Setup Script for CPE Training Platform
  * 
  * This script runs locally and uses the Directus REST API to automatically create
- * all collections, custom fields, and relationships required for Phase 1.
+ * the legacy-compatible base collections and relationships. After this bootstrap,
+ * run the module-course schema command documented in
+ * docs/MODULE COURSE MIGRATION RUNBOOK.md to install the v2 collections,
+ * constraints, and permissions. Do not use this script to retire legacy fields.
  * 
  * Usage:
  *   node setup_directus.js <DIRECTUS_URL> <ADMIN_TOKEN>
