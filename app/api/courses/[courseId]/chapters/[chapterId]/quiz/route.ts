@@ -11,6 +11,94 @@ import {
 } from "@/lib/course-completion";
 import { logServerEvent } from "@/lib/observability";
 
+async function completeCourseWithoutEssay({
+  userId,
+  courseId,
+  quizScore,
+}: {
+  userId: string;
+  courseId: string;
+  quizScore: number;
+}) {
+  const modules = await db.request(
+    readItems("Modules", {
+      filter: { course_id: { _eq: courseId } },
+      fields: ["id", "type"],
+    })
+  );
+
+  // Essay-based courses keep using instructor approval as their certificate gate.
+  if (modules.some((module) => module.type === "essay")) {
+    return false;
+  }
+
+  const requiredModuleIds = modules
+    .filter((module) => module.type === "video" || module.type === "quiz" || !module.type)
+    .map((module) => module.id);
+
+  const completedProgress = await db.request(
+    readItems("UserProgress", {
+      filter: {
+        user_id: { _eq: userId },
+        module_id: { _in: requiredModuleIds },
+        is_completed: { _eq: true },
+      },
+      fields: ["module_id"],
+    })
+  );
+  const completedModuleIds = new Set(completedProgress.map((item) => item.module_id));
+
+  if (!requiredModuleIds.every((moduleId) => completedModuleIds.has(moduleId))) {
+    return false;
+  }
+
+  const existingCertificates = await db.request(
+    readItems("Certificates", {
+      filter: {
+        user_id: { _eq: userId },
+        course_id: { _eq: courseId },
+      },
+      limit: 1,
+      fields: ["id"],
+    })
+  );
+  if (existingCertificates.length > 0) {
+    return true;
+  }
+
+  // The existing Directus webhook issues certificates when a Submission becomes
+  // Approved. For courses without essays, this record is the completion adapter.
+  const existingCompletions = await db.request(
+    readItems("Submissions", {
+      filter: {
+        user_id: { _eq: userId },
+        course_id: { _eq: courseId },
+      },
+      limit: 1,
+      fields: ["id", "status"],
+    })
+  );
+
+  const completion = existingCompletions[0] || await db.request(
+    createItem("Submissions", {
+      user_id: userId,
+      course_id: courseId,
+      quiz_score: quizScore,
+      essay_text: "Course completed without an essay assessment.",
+      status: "Pending",
+    })
+  );
+
+  await db.request(
+    updateItem("Submissions", completion.id, {
+      quiz_score: quizScore,
+      status: "Approved",
+    })
+  );
+
+  return true;
+}
+
 export async function GET(
   req: Request,
   { params }: { params: { courseId: string; chapterId: string } }
@@ -235,13 +323,6 @@ export async function POST(
     }
 
     if (action === "submit-quiz") {
-      if (progress.is_completed) {
-        return NextResponse.json({
-          alreadyCompleted: true,
-          isCompleted: true,
-        });
-      }
-
       // Verify that all questions are answered
       const unanswered = questions.some((q) => !(q.id in answers));
       if (unanswered) {
@@ -297,6 +378,12 @@ export async function POST(
             })
           );
         }
+
+        await completeCourseWithoutEssay({
+          userId: user.id,
+          courseId: params.courseId,
+          quizScore: score,
+        });
       }
 
       return NextResponse.json({
